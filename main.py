@@ -55,6 +55,7 @@ async def login(
         max_age=auth.SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
+        secure=auth.is_cookie_secure(),
     )
     return resp
 
@@ -63,6 +64,79 @@ async def login(
 async def logout():
     resp = RedirectResponse(url="/login", status_code=302)
     resp.delete_cookie(auth.SESSION_COOKIE)
+    return resp
+
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request, "error": None})
+
+
+@app.post("/register")
+async def register(
+    username: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+):
+    # バリデーション
+    username = username.strip()
+    if not username or not password:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": {}, "error": "ユーザー名とパスワードを入力してください"},
+            status_code=400,
+        )
+
+    # ユーザー名の文字種と長さチェック（半角英数字、3〜20文字）
+    import re
+    if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": {}, "error": "ユーザー名は3〜20文字の半角英数字（アンダースコア含む）で入力してください"},
+            status_code=400,
+        )
+
+    # パスワード長さ（8文字以上）
+    if len(password) < 8:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": {}, "error": "パスワードは8文字以上で入力してください"},
+            status_code=400,
+        )
+
+    # パスワード一致チェック
+    if password != password_confirm:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": {}, "error": "パスワードが一致しません"},
+            status_code=400,
+        )
+
+    # 重複チェック
+    existing = database.get_user_by_username(username)
+    if existing:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": {}, "error": "そのユーザー名はすでに使用されています"},
+            status_code=400,
+        )
+
+    # 新規登録
+    hashed = auth.hash_password(password)
+    database.create_user(username, hashed)
+
+    # 登録直後の自動ログイン
+    user = database.get_user_by_username(username)
+    token = auth.create_session_token(user["id"])
+    resp = RedirectResponse(url="/", status_code=302)
+    resp.set_cookie(
+        auth.SESSION_COOKIE,
+        token,
+        max_age=auth.SESSION_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=auth.is_cookie_secure(),
+    )
     return resp
 
 
@@ -76,7 +150,7 @@ async def record_page(
     today = date or date_type.today().isoformat()
     existing = database.get_records_for_date(user_id, today)
     note = database.get_note(user_id, today)
-    symptoms = database.get_active_symptoms()
+    symptoms = database.get_active_symptoms(user_id)
     return templates.TemplateResponse(
         "record.html",
         {
@@ -101,7 +175,7 @@ async def save_records(
     entries = body.get("entries", [])
     note = body.get("note", "")
 
-    valid_symptoms = {s["name"] for s in database.get_active_symptoms()}
+    valid_symptoms = {s["name"] for s in database.get_active_symptoms(user_id)}
 
     for entry in entries:
         symptom = entry.get("symptom")
@@ -137,7 +211,7 @@ async def settings_page(
     request: Request,
     user_id: int = Depends(auth.get_current_user_id),
 ):
-    symptoms = database.get_all_symptoms()
+    symptoms = database.get_all_symptoms(user_id)
     return templates.TemplateResponse(
         "settings.html",
         {"request": request, "symptoms": symptoms},
@@ -151,7 +225,7 @@ async def add_symptom(
     use_timepoints: int = Form(1),
     user_id: int = Depends(auth.get_current_user_id),
 ):
-    ok = database.add_symptom(name.strip(), label.strip(), use_timepoints)
+    ok = database.add_symptom(user_id, name.strip(), label.strip(), use_timepoints)
     if not ok:
         return RedirectResponse(url="/settings?error=duplicate", status_code=302)
     return RedirectResponse(url="/settings", status_code=302)
@@ -165,7 +239,7 @@ async def update_symptom(
     active: int = Form(1),
     user_id: int = Depends(auth.get_current_user_id),
 ):
-    database.update_symptom(symptom_id, label.strip(), use_timepoints, active)
+    database.update_symptom(user_id, symptom_id, label.strip(), use_timepoints, active)
     return RedirectResponse(url="/settings", status_code=302)
 
 
@@ -175,7 +249,7 @@ async def reorder_symptoms(
     user_id: int = Depends(auth.get_current_user_id),
 ):
     body = await request.json()
-    database.reorder_symptoms(body.get("ids", []))
+    database.reorder_symptoms(user_id, body.get("ids", []))
     return JSONResponse({"ok": True})
 
 

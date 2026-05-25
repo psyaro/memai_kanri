@@ -6,11 +6,26 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from fastapi import Cookie, HTTPException
 from typing import Optional
 
-SECRET_KEY = "change-this-secret-key-in-production"
+import sys
+
+SECRET_KEY = os.environ.get("SESSION_SECRET_KEY")
+if not SECRET_KEY:
+    if os.environ.get("ENV") == "production":
+        print("CRITICAL SECURITY ERROR: 'SESSION_SECRET_KEY' environment variable is not set in production!", file=sys.stderr)
+        sys.exit(1)
+    else:
+        # 開発環境用フォールバック
+        SECRET_KEY = "change-this-secret-key-in-production-dev-fallback"
+
 SESSION_COOKIE = "session"
 SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
 _serializer = URLSafeTimedSerializer(SECRET_KEY)
+
+
+def is_cookie_secure() -> bool:
+    """本番環境(ENV=production)の場合はCookieにSecure属性を付与する"""
+    return os.environ.get("ENV") == "production"
 
 _ITERATIONS = 260000
 
