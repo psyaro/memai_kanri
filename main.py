@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Form, Depends, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 from typing import Optional
 import json
 import os
@@ -13,6 +14,15 @@ from models import TIMEPOINTS, TIMEPOINT_LABELS
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=auth.SECRET_KEY,
+    session_cookie=auth.SESSION_COOKIE,
+    max_age=auth.SESSION_MAX_AGE,
+    same_site="lax",
+    https_only=auth.is_cookie_secure(),
+)
 
 
 def static_v(filename: str) -> str:
@@ -37,6 +47,7 @@ async def login_page(request: Request):
 
 @app.post("/login")
 async def login(
+    request: Request,
     username: str = Form(...),
     password: str = Form(...),
 ):
@@ -44,27 +55,17 @@ async def login(
     if not user or not auth.verify_password(password, user["password_hash"]):
         return templates.TemplateResponse(
             "login.html",
-            {"request": {}, "error": "ユーザー名またはパスワードが違います"},
+            {"request": request, "error": "ユーザー名またはパスワードが違います"},
             status_code=400,
         )
-    token = auth.create_session_token(user["id"])
-    resp = RedirectResponse(url="/", status_code=302)
-    resp.set_cookie(
-        auth.SESSION_COOKIE,
-        token,
-        max_age=auth.SESSION_MAX_AGE,
-        httponly=True,
-        samesite="lax",
-        secure=auth.is_cookie_secure(),
-    )
-    return resp
+    request.session["user_id"] = user["id"]
+    return RedirectResponse(url="/", status_code=302)
 
 
 @app.get("/logout")
-async def logout():
-    resp = RedirectResponse(url="/login", status_code=302)
-    resp.delete_cookie(auth.SESSION_COOKIE)
-    return resp
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=302)
 
 
 @app.get("/register", response_class=HTMLResponse)
@@ -78,6 +79,7 @@ async def register_page(request: Request):
 
 @app.post("/register")
 async def register(
+    request: Request,
     username: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
@@ -91,7 +93,7 @@ async def register(
         return templates.TemplateResponse(
             "register.html",
             {
-                "request": {},
+                "request": request,
                 "error": "ユーザー名とパスワードを入力してください",
                 "turnstile_site_key": turnstile_site_key
             },
@@ -103,7 +105,7 @@ async def register(
         return templates.TemplateResponse(
             "register.html",
             {
-                "request": {},
+                "request": request,
                 "error": "ボットチェックの検証に失敗しました。リロードしてお試しください。",
                 "turnstile_site_key": turnstile_site_key
             },
@@ -116,7 +118,7 @@ async def register(
         return templates.TemplateResponse(
             "register.html",
             {
-                "request": {},
+                "request": request,
                 "error": "ユーザー名は3〜20文字の半角英数字（アンダースコア含む）で入力してください",
                 "turnstile_site_key": turnstile_site_key
             },
@@ -128,7 +130,7 @@ async def register(
         return templates.TemplateResponse(
             "register.html",
             {
-                "request": {},
+                "request": request,
                 "error": "パスワードは8文字以上で入力してください",
                 "turnstile_site_key": turnstile_site_key
             },
@@ -140,7 +142,7 @@ async def register(
         return templates.TemplateResponse(
             "register.html",
             {
-                "request": {},
+                "request": request,
                 "error": "パスワードが一致しません",
                 "turnstile_site_key": turnstile_site_key
             },
@@ -153,7 +155,7 @@ async def register(
         return templates.TemplateResponse(
             "register.html",
             {
-                "request": {},
+                "request": request,
                 "error": "そのユーザー名はすでに使用されています",
                 "turnstile_site_key": turnstile_site_key
             },
@@ -166,17 +168,8 @@ async def register(
 
     # 登録直後の自動ログイン
     user = database.get_user_by_username(username)
-    token = auth.create_session_token(user["id"])
-    resp = RedirectResponse(url="/", status_code=302)
-    resp.set_cookie(
-        auth.SESSION_COOKIE,
-        token,
-        max_age=auth.SESSION_MAX_AGE,
-        httponly=True,
-        samesite="lax",
-        secure=auth.is_cookie_secure(),
-    )
-    return resp
+    request.session["user_id"] = user["id"]
+    return RedirectResponse(url="/", status_code=302)
 
 
 @app.get("/", response_class=HTMLResponse)
