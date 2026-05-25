@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>体調記録 — ログイン</title>
   <link rel="stylesheet" href="{{ static_v('style.css') }}">
+  <!-- Cloudflare Turnstile Script -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="login-page">
   <div class="login-card">
@@ -19,6 +21,14 @@
       <label>パスワード
         <input type="password" name="password" autocomplete="current-password" required>
       </label>
+
+      <!-- Turnstile Widget -->
+      {% if turnstile_site_key %}
+      <div style="margin-bottom: 16px; display: flex; justify-content: center;">
+        <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+      </div>
+      {% endif %}
+
       <button type="submit">ログイン</button>
     </form>
     <div style="margin-top: 20px; text-align: center;">

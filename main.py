@@ -42,7 +42,11 @@ database.init_db()
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "error": None, "turnstile_site_key": turnstile_site_key}
+    )
 
 
 @app.post("/login")
@@ -50,12 +54,31 @@ async def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
+    cf_turnstile_response: str = Form(None, alias="cf-turnstile-response"),
 ):
+    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+
+    # Turnstile ボット検証
+    if not auth.verify_turnstile(cf_turnstile_response):
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "error": "ボットチェックの検証に失敗しました。リロードしてお試しください。",
+                "turnstile_site_key": turnstile_site_key
+            },
+            status_code=400,
+        )
+
     user = database.get_user_by_username(username)
     if not user or not auth.verify_password(password, user["password_hash"]):
         return templates.TemplateResponse(
             "login.html",
-            {"request": request, "error": "ユーザー名またはパスワードが違います"},
+            {
+                "request": request,
+                "error": "ユーザー名またはパスワードが違います",
+                "turnstile_site_key": turnstile_site_key
+            },
             status_code=400,
         )
     request.session["user_id"] = user["id"]
@@ -179,6 +202,14 @@ async def record_page(
     user_id: int = Depends(auth.get_current_user_id),
 ):
     from datetime import date as date_type
+    
+    # date パラメータのバリデーション
+    if date:
+        try:
+            date_type.fromisoformat(date)
+        except ValueError:
+            return RedirectResponse(url="/", status_code=302)
+
     today = date or date_type.today().isoformat()
     existing = database.get_records_for_date(user_id, today)
     note = database.get_note(user_id, today)
@@ -202,10 +233,21 @@ async def save_records(
     request: Request,
     user_id: int = Depends(auth.get_current_user_id),
 ):
+    from datetime import date as date_type
     body = await request.json()
     date = body.get("date")
     entries = body.get("entries", [])
     note = body.get("note", "")
+
+    # date パラメータのバリデーション
+    if date:
+        try:
+            date_type.fromisoformat(date)
+        except ValueError:
+            return JSONResponse({"error": "invalid date format"}, status_code=400)
+
+    # note の長さを最大2000文字に制限（ストレージ枯渇対策）
+    note = note[:2000]
 
     valid_symptoms = {s["name"] for s in database.get_active_symptoms(user_id)}
 
@@ -230,6 +272,12 @@ async def get_records(
     date: str,
     user_id: int = Depends(auth.get_current_user_id),
 ):
+    from datetime import date as date_type
+    try:
+        date_type.fromisoformat(date)
+    except ValueError:
+        return JSONResponse({"error": "invalid date format"}, status_code=400)
+
     return JSONResponse({
         "records": database.get_records_for_date(user_id, date),
         "note": database.get_note(user_id, date),
@@ -281,7 +329,10 @@ async def reorder_symptoms(
     user_id: int = Depends(auth.get_current_user_id),
 ):
     body = await request.json()
-    database.reorder_symptoms(user_id, body.get("ids", []))
+    ordered_ids = body.get("ids", [])
+    if len(ordered_ids) > 100:
+        return JSONResponse({"error": "too many symptoms"}, status_code=400)
+    database.reorder_symptoms(user_id, ordered_ids)
     return JSONResponse({"ok": True})
 
 

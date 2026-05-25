@@ -15,7 +15,7 @@ if not SECRET_KEY:
         SECRET_KEY = "change-this-secret-key-in-production-dev-fallback"
 
 SESSION_COOKIE = "session"
-SESSION_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+SESSION_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
 
 def is_cookie_secure() -> bool:
