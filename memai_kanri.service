@@ -1,0 +1,14 @@
+[Unit]
+Description=体調記録アプリ
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/memai_kanri
+ExecStart=/opt/memai_kanri/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

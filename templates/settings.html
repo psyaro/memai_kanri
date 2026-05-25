@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>設定 — 体調記録</title>
+  <link rel="stylesheet" href="{{ static_v('style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>設定</h1>
+    <nav class="header-nav">
+      <a href="/">記録へ戻る</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="settings-section">
+      <h2>記録項目</h2>
+      <p class="settings-hint">ドラッグで並び替え、チェックを外すと非表示になります。</p>
+
+      <ul id="symptom-list">
+        {% for s in symptoms %}
+        <li class="symptom-item" data-id="{{ s.id }}">
+          <span class="drag-handle">&#9776;</span>
+          <form method="post" action="/settings/update/{{ s.id }}" class="symptom-form">
+            <input type="text" name="label" value="{{ s.label }}" class="symptom-label-input">
+            <label class="tp-toggle" title="朝・昼・夜・全体で記録">
+              <input type="checkbox" name="use_timepoints" value="1" {% if s.use_timepoints %}checked{% endif %}
+                onchange="this.form.querySelector('[name=use_timepoints_hidden]').disabled = this.checked">
+              時間帯別
+            </label>
+            <input type="hidden" name="use_timepoints" value="0" class="tp-hidden"
+              {% if s.use_timepoints %}disabled{% endif %}>
+            <label class="active-toggle">
+              <input type="checkbox" name="active" value="1" {% if s.active %}checked{% endif %}
+                onchange="this.form.querySelector('[name=active_hidden]').disabled = this.checked">
+              有効
+            </label>
+            <input type="hidden" name="active" value="0" {% if s.active %}disabled{% endif %}>
+            <button type="submit" class="btn-small">保存</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="settings-section">
+      <h2>項目を追加</h2>
+      <form method="post" action="/settings/add" class="add-form">
+        <input type="text" name="label" placeholder="表示名（例：頭痛）" required class="add-input">
+        <input type="text" name="name" placeholder="ID（英数字、例：headache）" required
+               pattern="[a-zA-Z0-9_]+" title="英数字とアンダースコアのみ" class="add-input">
+        <label class="tp-toggle">
+          <input type="checkbox" name="use_timepoints" value="1" checked
+            onchange="this.form.querySelector('[name=use_timepoints_hidden]').disabled = this.checked">
+          時間帯別（朝・昼・夜・全体）
+        </label>
+        <input type="hidden" name="use_timepoints" value="0" disabled>
+        <button type="submit" class="btn-add">追加</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="{{ static_v('settings.js') }}"></script>
+</body>
+</html>

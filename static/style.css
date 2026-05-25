@@ -1,0 +1,405 @@
+:root {
+  --primary: #4a90d9;
+  --primary-dark: #2d6fb0;
+  --bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text: #2c3e50;
+  --muted: #7f8c8d;
+  --border: #dde3ea;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+
+  --score-none: #95a5a6;
+  --score-0: #27ae60;
+  --score-1: #2ecc71;
+  --score-2: #f1c40f;
+  --score-3: #e67e22;
+  --score-4: #e74c3c;
+  --score-5: #8e44ad;
+  --score-selected-text: #fff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ---- Login ---- */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 36px 28px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.login-card input {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.login-card input:focus { border-color: var(--primary); }
+
+.login-card button {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.login-card button:hover { background: var(--primary-dark); }
+
+.error-msg {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+/* ---- Header ---- */
+header {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header h1 { font-size: 1.1rem; }
+
+.header-nav {
+  display: flex;
+  gap: 16px;
+}
+
+.header-nav a {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.header-nav a:hover { color: var(--text); }
+
+/* ---- Main ---- */
+main {
+  padding: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.nav-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.nav-btn:hover { background: var(--bg); }
+
+.date-row input[type="date"] {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  color: var(--text);
+  background: var(--card-bg);
+  width: 100%;
+  max-width: 200px;
+}
+
+/* ---- Symptom sections ---- */
+.symptom-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.symptom-section h2 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.timepoint-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tp-block { }
+
+.tp-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.score-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.score-btn {
+  padding: 8px 0;
+  width: calc((100% - 24px) / 7);
+  min-width: 36px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.score-btn:active { transform: scale(0.93); }
+
+.score-btn[data-score="none"].selected { background: var(--score-none); border-color: var(--score-none); color: var(--score-selected-text); }
+.score-btn[data-score="0"].selected   { background: var(--score-0);    border-color: var(--score-0);    color: var(--score-selected-text); }
+.score-btn[data-score="1"].selected   { background: var(--score-1);    border-color: var(--score-1);    color: var(--score-selected-text); }
+.score-btn[data-score="2"].selected   { background: var(--score-2);    border-color: var(--score-2);    color: var(--score-selected-text); }
+.score-btn[data-score="3"].selected   { background: var(--score-3);    border-color: var(--score-3);    color: var(--score-selected-text); }
+.score-btn[data-score="4"].selected   { background: var(--score-4);    border-color: var(--score-4);    color: var(--score-selected-text); }
+.score-btn[data-score="5"].selected   { background: var(--score-5);    border-color: var(--score-5);    color: var(--score-selected-text); }
+
+/* ---- Save button ---- */
+.save-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0 24px;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.save-btn:hover { background: var(--primary-dark); }
+.save-btn:active { transform: scale(0.98); }
+
+.clear-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-btn:hover { color: #c0392b; border-color: #c0392b; }
+
+/* ---- Notes ---- */
+.notes-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.notes-section h2 {
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+#note-input {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#note-input:focus { border-color: var(--primary); }
+
+/* ---- Settings ---- */
+.settings-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-section h2 { font-size: 1rem; margin-bottom: 8px; }
+
+.settings-hint { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; }
+
+#symptom-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.symptom-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: grab;
+}
+
+.symptom-item.dragging { opacity: 0.4; }
+
+.drag-handle { color: var(--muted); font-size: 1rem; cursor: grab; }
+
+.symptom-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.symptom-label-input {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 130px;
+}
+
+.tp-toggle, .active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.btn-small:hover { background: var(--primary-dark); }
+
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.add-input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.btn-add {
+  padding: 12px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-add:hover { background: var(--primary-dark); }
+
+/* ---- Save msg ---- */
+.save-msg {
+  background: #eafaf1;
+  color: #1e8449;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 12px;
+}

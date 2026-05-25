@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>体調記録</title>
+  <link rel="stylesheet" href="{{ static_v('style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>体調記録</h1>
+    <nav class="header-nav">
+      <a href="/settings">設定</a>
+      <a href="/logout">ログアウト</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="date-row">
+      <button type="button" id="btn-prev" class="nav-btn">&#8592; 昨日</button>
+      <input type="date" id="date-input" value="{{ date }}">
+      <button type="button" id="btn-next" class="nav-btn">翌日 &#8594;</button>
+    </div>
+
+    <div id="save-msg" class="save-msg" hidden></div>
+
+    <form id="record-form">
+      {% for s in symptoms %}
+      <section class="symptom-section">
+        <h2>{{ s.label }}</h2>
+        <div class="timepoint-grid">
+          {% set tps = ["overall"] if not s.use_timepoints else timepoints %}
+          {% for tp in tps %}
+          <div class="tp-block">
+            <div class="tp-label">{{ timepoint_labels[tp] }}</div>
+            <div class="score-buttons" data-symptom="{{ s.name }}" data-timepoint="{{ tp }}">
+              <button type="button" class="score-btn" data-score="none">なし</button>
+              {% for i in range(6) %}
+              <button type="button" class="score-btn" data-score="{{ i }}">{{ i }}</button>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+
+      <section class="notes-section">
+        <h2>備考</h2>
+        <textarea id="note-input" placeholder="自由記入（薬、イベント、体の変化など）">{{ note }}</textarea>
+      </section>
+
+      <div class="save-row">
+        <button type="submit" class="save-btn">保存する</button>
+        <button type="button" id="btn-clear" class="clear-btn">この日をクリア</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    const EXISTING = {{ existing | safe }};
+    const EXISTING_NOTE = {{ note | tojson }};
+  </script>
+  <script src="{{ static_v('app.js') }}"></script>
+</body>
+</html>
