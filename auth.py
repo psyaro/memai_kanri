@@ -27,6 +27,37 @@ def is_cookie_secure() -> bool:
     """本番環境(ENV=production)の場合はCookieにSecure属性を付与する"""
     return os.environ.get("ENV") == "production"
 
+
+import urllib.request
+import urllib.parse
+import json
+
+def verify_turnstile(token: str) -> bool:
+    """Cloudflare Turnstile トークンの正当性を検証する"""
+    secret_key = os.environ.get("TURNSTILE_SECRET_KEY")
+    if not secret_key:
+        if os.environ.get("ENV") == "production":
+            return False
+        # 開発環境用のデバッグログ
+        print("Warning: 'TURNSTILE_SECRET_KEY' is not set. Skipping Turnstile verification in development mode.")
+        return True
+
+    url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    data = urllib.parse.urlencode({
+        "secret": secret_key,
+        "response": token,
+    }).encode("utf-8")
+
+    try:
+        req = urllib.request.Request(url, data=data, method="POST")
+        with urllib.request.urlopen(req, timeout=5) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            return result.get("success", False)
+    except Exception as e:
+        print(f"Turnstile verification failed: {e}", file=sys.stderr)
+        return False
+
+
 _ITERATIONS = 260000
 
 

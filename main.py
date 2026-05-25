@@ -69,7 +69,11 @@ async def logout():
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "error": None})
+    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "error": None, "turnstile_site_key": turnstile_site_key}
+    )
 
 
 @app.post("/register")
@@ -77,13 +81,32 @@ async def register(
     username: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
+    cf_turnstile_response: str = Form(None, alias="cf-turnstile-response"),
 ):
+    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+
     # バリデーション
     username = username.strip()
     if not username or not password:
         return templates.TemplateResponse(
             "register.html",
-            {"request": {}, "error": "ユーザー名とパスワードを入力してください"},
+            {
+                "request": {},
+                "error": "ユーザー名とパスワードを入力してください",
+                "turnstile_site_key": turnstile_site_key
+            },
+            status_code=400,
+        )
+
+    # Turnstile ボット検証
+    if not auth.verify_turnstile(cf_turnstile_response):
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": {},
+                "error": "ボットチェックの検証に失敗しました。リロードしてお試しください。",
+                "turnstile_site_key": turnstile_site_key
+            },
             status_code=400,
         )
 
@@ -92,7 +115,11 @@ async def register(
     if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
         return templates.TemplateResponse(
             "register.html",
-            {"request": {}, "error": "ユーザー名は3〜20文字の半角英数字（アンダースコア含む）で入力してください"},
+            {
+                "request": {},
+                "error": "ユーザー名は3〜20文字の半角英数字（アンダースコア含む）で入力してください",
+                "turnstile_site_key": turnstile_site_key
+            },
             status_code=400,
         )
 
@@ -100,7 +127,11 @@ async def register(
     if len(password) < 8:
         return templates.TemplateResponse(
             "register.html",
-            {"request": {}, "error": "パスワードは8文字以上で入力してください"},
+            {
+                "request": {},
+                "error": "パスワードは8文字以上で入力してください",
+                "turnstile_site_key": turnstile_site_key
+            },
             status_code=400,
         )
 
@@ -108,7 +139,11 @@ async def register(
     if password != password_confirm:
         return templates.TemplateResponse(
             "register.html",
-            {"request": {}, "error": "パスワードが一致しません"},
+            {
+                "request": {},
+                "error": "パスワードが一致しません",
+                "turnstile_site_key": turnstile_site_key
+            },
             status_code=400,
         )
 
@@ -117,7 +152,11 @@ async def register(
     if existing:
         return templates.TemplateResponse(
             "register.html",
-            {"request": {}, "error": "そのユーザー名はすでに使用されています"},
+            {
+                "request": {},
+                "error": "そのユーザー名はすでに使用されています",
+                "turnstile_site_key": turnstile_site_key
+            },
             status_code=400,
         )
 
