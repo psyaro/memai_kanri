@@ -226,6 +226,14 @@ main {
 .score-btn[data-score="4"].selected   { background: var(--score-4);    border-color: var(--score-4);    color: var(--score-selected-text); }
 .score-btn[data-score="5"].selected   { background: var(--score-5);    border-color: var(--score-5);    color: var(--score-selected-text); }
 
+/* ---- 逆向きスコア（睡眠・メンタルなど：数値が大きいほど良い）の配色 ---- */
+.score-buttons[data-reverse="1"] .score-btn[data-score="0"].selected { background: var(--score-5); border-color: var(--score-5); }
+.score-buttons[data-reverse="1"] .score-btn[data-score="1"].selected { background: var(--score-4); border-color: var(--score-4); }
+.score-buttons[data-reverse="1"] .score-btn[data-score="2"].selected { background: var(--score-3); border-color: var(--score-3); }
+.score-buttons[data-reverse="1"] .score-btn[data-score="3"].selected { background: var(--score-2); border-color: var(--score-2); }
+.score-buttons[data-reverse="1"] .score-btn[data-score="4"].selected { background: var(--score-1); border-color: var(--score-1); }
+.score-buttons[data-reverse="1"] .score-btn[data-score="5"].selected { background: var(--score-0); border-color: var(--score-0); }
+
 /* ---- Save button ---- */
 .save-row {
   display: flex;

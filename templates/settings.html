@@ -10,6 +10,7 @@
   <header>
     <h1>設定</h1>
     <nav class="header-nav">
+      <a href="/help">使い方</a>
       <a href="/">記録へ戻る</a>
     </nav>
   </header>
@@ -25,19 +26,30 @@
           <span class="drag-handle">&#9776;</span>
           <form method="post" action="/settings/update/{{ s.id }}" class="symptom-form">
             <input type="text" name="label" value="{{ s.label }}" class="symptom-label-input">
+            
             <label class="tp-toggle" title="朝・昼・夜・全体で記録">
               <input type="checkbox" name="use_timepoints" value="1" {% if s.use_timepoints %}checked{% endif %}
-                onchange="this.form.querySelector('[name=use_timepoints_hidden]').disabled = this.checked">
+                onchange="this.form.querySelector('.tp-hidden').disabled = this.checked">
               時間帯別
             </label>
             <input type="hidden" name="use_timepoints" value="0" class="tp-hidden"
               {% if s.use_timepoints %}disabled{% endif %}>
+            
+            <label class="tp-toggle" title="数値が大きいほど良い状態（睡眠やメンタルなど）">
+              <input type="checkbox" name="is_reverse" value="1" {% if s.is_reverse %}checked{% endif %}
+                onchange="this.form.querySelector('.rev-hidden').disabled = this.checked">
+              逆スコア (大＝良)
+            </label>
+            <input type="hidden" name="is_reverse" value="0" class="rev-hidden"
+              {% if s.is_reverse %}disabled{% endif %}>
+            
             <label class="active-toggle">
               <input type="checkbox" name="active" value="1" {% if s.active %}checked{% endif %}
-                onchange="this.form.querySelector('[name=active_hidden]').disabled = this.checked">
+                onchange="this.form.querySelector('.active-hidden').disabled = this.checked">
               有効
             </label>
-            <input type="hidden" name="active" value="0" {% if s.active %}disabled{% endif %}>
+            <input type="hidden" name="active" value="0" class="active-hidden" {% if s.active %}disabled{% endif %}>
+            
             <button type="submit" class="btn-small">保存</button>
           </form>
         </li>
@@ -51,12 +63,21 @@
         <input type="text" name="label" placeholder="表示名（例：頭痛）" required class="add-input">
         <input type="text" name="name" placeholder="ID（英数字、例：headache）" required
                pattern="[a-zA-Z0-9_]+" title="英数字とアンダースコアのみ" class="add-input">
+        
         <label class="tp-toggle">
           <input type="checkbox" name="use_timepoints" value="1" checked
-            onchange="this.form.querySelector('[name=use_timepoints_hidden]').disabled = this.checked">
+            onchange="this.form.querySelector('.add-tp-hidden').disabled = this.checked">
           時間帯別（朝・昼・夜・全体）
         </label>
-        <input type="hidden" name="use_timepoints" value="0" disabled>
+        <input type="hidden" name="use_timepoints" value="0" class="add-tp-hidden" disabled>
+        
+        <label class="tp-toggle" title="数値が大きいほど良い状態（睡眠やメンタルなど）">
+          <input type="checkbox" name="is_reverse" value="1"
+            onchange="this.form.querySelector('.add-rev-hidden').disabled = this.checked">
+          逆スコア (大＝良)
+        </label>
+        <input type="hidden" name="is_reverse" value="0" class="add-rev-hidden">
+        
         <button type="submit" class="btn-add">追加</button>
       </form>
     </section>

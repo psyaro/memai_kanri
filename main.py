@@ -37,12 +37,40 @@ def static_v(filename: str) -> str:
 
 templates.env.globals["static_v"] = static_v
 
+
+def get_turnstile_site_key() -> str:
+    """開発環境であれば、未設定・プレースホルダーの場合にテスト用ダミーキーを返す"""
+    site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+    if site_key:
+        site_key = site_key.strip().strip('"\'')
+    is_dummy_or_empty = (
+        not site_key 
+        or site_key == "" 
+        or "あなたの" in site_key
+    )
+    if is_dummy_or_empty:
+        if os.environ.get("ENV") != "production":
+            return "1x00000000000000000000AA"  # 常にパスするダミーサイトキー
+        return ""
+    return site_key
+
+
 database.init_db()
+
+
+@app.get("/help", response_class=HTMLResponse)
+async def help_page(request: Request):
+    user_id = request.session.get("user_id")
+    is_logged_in = user_id is not None
+    return templates.TemplateResponse(
+        "help.html",
+        {"request": request, "is_logged_in": is_logged_in}
+    )
 
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+    turnstile_site_key = get_turnstile_site_key()
     return templates.TemplateResponse(
         "login.html",
         {"request": request, "error": None, "turnstile_site_key": turnstile_site_key}
@@ -56,10 +84,14 @@ async def login(
     password: str = Form(...),
     cf_turnstile_response: str = Form(None, alias="cf-turnstile-response"),
 ):
-    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+    turnstile_site_key = get_turnstile_site_key()
 
     # Turnstile ボット検証
-    if not auth.verify_turnstile(cf_turnstile_response):
+    is_valid_turnstile = auth.verify_turnstile(cf_turnstile_response)
+    print(f"[DEBUG] Turnstile verification result: {is_valid_turnstile} (response: {cf_turnstile_response[:20] if cf_turnstile_response else None}...)")
+
+    if not is_valid_turnstile:
+        print("[DEBUG] Login failed: Turnstile verification failed.")
         return templates.TemplateResponse(
             "login.html",
             {
@@ -71,6 +103,13 @@ async def login(
         )
 
     user = database.get_user_by_username(username)
+    if not user:
+        print(f"[DEBUG] Login failed: User '{username}' not found in database.")
+    elif not auth.verify_password(password, user["password_hash"]):
+        print(f"[DEBUG] Login failed: Incorrect password for user '{username}'.")
+    else:
+        print(f"[DEBUG] Login successful for user '{username}'. Session user_id set to {user['id']}.")
+
     if not user or not auth.verify_password(password, user["password_hash"]):
         return templates.TemplateResponse(
             "login.html",
@@ -93,7 +132,7 @@ async def logout(request: Request):
 
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+    turnstile_site_key = get_turnstile_site_key()
     return templates.TemplateResponse(
         "register.html",
         {"request": request, "error": None, "turnstile_site_key": turnstile_site_key}
@@ -108,7 +147,7 @@ async def register(
     password_confirm: str = Form(...),
     cf_turnstile_response: str = Form(None, alias="cf-turnstile-response"),
 ):
-    turnstile_site_key = os.environ.get("TURNSTILE_SITE_KEY", "")
+    turnstile_site_key = get_turnstile_site_key()
 
     # バリデーション
     username = username.strip()
@@ -124,7 +163,11 @@ async def register(
         )
 
     # Turnstile ボット検証
-    if not auth.verify_turnstile(cf_turnstile_response):
+    is_valid_turnstile = auth.verify_turnstile(cf_turnstile_response)
+    print(f"[DEBUG] [Register] Turnstile verification result: {is_valid_turnstile} (response: {cf_turnstile_response[:20] if cf_turnstile_response else None}...)")
+
+    if not is_valid_turnstile:
+        print("[DEBUG] [Register] Registration failed: Turnstile verification failed.")
         return templates.TemplateResponse(
             "register.html",
             {
@@ -303,9 +346,10 @@ async def add_symptom(
     name: str = Form(...),
     label: str = Form(...),
     use_timepoints: int = Form(1),
+    is_reverse: int = Form(0),
     user_id: int = Depends(auth.get_current_user_id),
 ):
-    ok = database.add_symptom(user_id, name.strip(), label.strip(), use_timepoints)
+    ok = database.add_symptom(user_id, name.strip(), label.strip(), use_timepoints, is_reverse)
     if not ok:
         return RedirectResponse(url="/settings?error=duplicate", status_code=302)
     return RedirectResponse(url="/settings", status_code=302)
@@ -317,9 +361,10 @@ async def update_symptom(
     label: str = Form(...),
     use_timepoints: int = Form(1),
     active: int = Form(1),
+    is_reverse: int = Form(0),
     user_id: int = Depends(auth.get_current_user_id),
 ):
-    database.update_symptom(user_id, symptom_id, label.strip(), use_timepoints, active)
+    database.update_symptom(user_id, symptom_id, label.strip(), use_timepoints, active, is_reverse)
     return RedirectResponse(url="/settings", status_code=302)
 
 

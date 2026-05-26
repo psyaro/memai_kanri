@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>使い方ガイド — 体調記録</title>
+  <link rel="stylesheet" href="{{ static_v('style.css') }}">
+  <style>
+    /* 使い方ページ専用のプレミアムスタイル */
+    .help-container {
+      margin-bottom: 30px;
+    }
+    .help-header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 10px 0;
+    }
+    .help-header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 6px;
+    }
+    .help-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 16px;
+      border-left: 5px solid var(--primary);
+    }
+    .help-card.cyan {
+      border-left-color: #00bcd4;
+    }
+    .help-card.orange {
+      border-left-color: #ff9800;
+    }
+    .help-card h2 {
+      font-size: 1.15rem;
+      color: var(--text);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .help-card p {
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .step-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .step-item {
+      display: flex;
+      gap: 12px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .step-num {
+      background: var(--primary);
+      color: #fff;
+      font-weight: bold;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-text {
+      flex: 1;
+    }
+    .score-guide-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 0.88rem;
+    }
+    .score-guide-table th, .score-guide-table td {
+      border: 1px solid var(--border);
+      padding: 10px;
+      text-align: left;
+    }
+    .score-guide-table th {
+      background: var(--bg);
+      color: var(--text);
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #fff;
+      font-weight: bold;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    .badge-none { background: var(--score-none); }
+    .badge-0 { background: var(--score-0); }
+    .badge-1 { background: var(--score-1); }
+    .badge-2 { background: var(--score-2); }
+    .badge-3 { background: var(--score-3); }
+    .badge-4 { background: var(--score-4); }
+    .badge-5 { background: var(--score-5); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>使い方ガイド</h1>
+    <nav class="header-nav">
+      {% if is_logged_in %}
+        <a href="/">記録へ戻る</a>
+      {% else %}
+        <a href="/login">ログインへ戻る</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="help-container">
+    <div class="help-header">
+      <p>日々の体調やつらい症状の変化をスコア化して可視化するための手引きです。</p>
+    </div>
+
+    <!-- 1. 記録の基本 -->
+    <div class="help-card">
+      <h2>📊 記録の基本ステップ</h2>
+      <ul class="step-list">
+        <li class="step-item">
+          <span class="step-num">1</span>
+          <div class="step-text">
+            <strong>日付の選択:</strong><br>
+            「← 昨日」や「翌日 →」ボタン、またはカレンダー入力を利用して記録したい日付を選びます。
+          </div>
+        </li>
+        <li class="step-item">
+          <span class="step-num">2</span>
+          <div class="step-text">
+            <strong>症状の入力:</strong><br>
+            各症状に対して時間帯（朝・昼・夜・全体）ごとに当てはまる強さを選びます。「なし」または「0（ほぼ症状なし）〜 5（非常に強い）」の評価基準に従ってタップまたはクリックで選択します。
+            <br><span style="color: var(--primary); font-size: 0.82rem; font-weight: 600;">※ 一度選択したスコアを「未記入」に戻したい場合は、選択中のボタンをもう一度タップ（クリック）すると解除されます。</span>
+          </div>
+        </li>
+        <li class="step-item">
+          <span class="step-num">3</span>
+          <div class="step-text">
+            <strong>備考の記入:</strong><br>
+            薬の服用状況、体調に影響を与えそうなライフイベント（天候、食事、睡眠不足など）があれば、備考欄に自由にテキストを残します。
+          </div>
+        </li>
+        <li class="step-item">
+          <span class="step-num">4</span>
+          <div class="step-text">
+            <strong>保存する:</strong><br>
+            最後に一番下の「保存する」ボタンを押すと、自動的にデータベースに保存され「保存しました」とメッセージが表示されます。
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 2. スコア評価の目安 -->
+    <div class="help-card cyan">
+      <h2>💡 スコア評価の目安（ガイドライン）</h2>
+      <p>めまいやその他の不快な症状をスコアリングする際の一般的な基準です。ご自身の判断で一貫した基準に沿って記録することが大切です。</p>
+
+      <div style="background: #e6f7ff; border: 1px solid #91d5ff; padding: 14px; border-radius: 8px; margin-bottom: 18px; font-size: 0.86rem; line-height: 1.6; color: #0050b3;">
+        <strong>💡 睡眠やメンタルなど、スコアの「向き（良し悪し）」について</strong><br>
+        「睡眠」や「メンタル」のように、状態が良い方向（ポジティブ）として記録したい項目は、ご自身の直感に合わせて<strong>「数値が大きいほど状態が良い（快適・元気）」</strong>として記録していただいて全く問題ありません！<br>
+        毎日ストレスなく直感的に入力できるよう、以下のような解釈で一貫して記録することをお勧めします：
+        <ul style="margin-left: 20px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <li><strong>睡眠スコア:</strong> 数値が大きいほど<strong>「ぐっすり眠れた（睡眠の質が良い・快適）」</strong>として記録。<br>（例：5 ＝ 非常に良く眠れてスッキリ、0 ＝ 全く眠れず非常に辛かった）</li>
+          <li><strong>メンタルスコア:</strong> 数値が大きいほど<strong>「気分が良い・穏やか・元気」</strong>として記録。<br>（例：5 ＝ 気分が非常に良く元気、0 ＝ 落ち込みやイライラが極めて強く辛かった）</li>
+        </ul>
+        <span style="font-size: 0.82rem; color: #40a9ff; font-weight: 600;">※ 大切なのは、ご自身の中で「毎回同じ基準（向き）で一貫して記録し続けること」です。自分にとって最も心地よく入力できるルールで記録しましょう。</span>
+      </div>
+
+      <div style="background: var(--bg); border: 1px dashed var(--border); padding: 14px; border-radius: 8px; margin-bottom: 18px; font-size: 0.86rem; line-height: 1.6; color: var(--text);">
+        <strong>❓ 一度記録したスコアを「未記入」に戻したい時は？</strong>
+        <ul style="margin-left: 20px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <li><strong>個別に未記入にする:</strong> 選択されている（色がついている）スコアボタンを<strong>もう一度タップ（クリック）</strong>すると、選択が解除されて「未記入」の状態に戻ります。</li>
+          <li><strong>この日の記録をすべてクリアする:</strong> 画面最下部にある<strong>「この日をクリア」</strong>ボタンを押すと、その日のすべての症状スコアと備考メモが一括でクリアされ、未記入状態に戻ります。</li>
+        </ul>
+      </div>
+      
+      <table class="score-guide-table">
+        <thead>
+          <tr>
+            <th style="width: 15%;">スコア</th>
+            <th style="width: 42.5%;">通常スコア（めまい・不調項目など）<br><small style="color: var(--muted); font-weight: normal;">※数値が大きいほど【つらい】</small></th>
+            <th style="width: 42.5%;">逆スコア（睡眠・メンタル項目など）<br><small style="color: var(--muted); font-weight: normal;">※数値が大きいほど【快適】</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-none">なし</span></td>
+            <td colspan="2" style="text-align: center; padding: 14px 10px;">
+              <strong>症状が完全に消失している、またはその症状が起きる理由がない状態。</strong><br>
+              <small style="color: var(--muted);">※ まだ一度も入力を行っていない「未記入」の状態とは明確に区別されます。</small>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-0">0</span></td>
+            <td><strong>ほぼなし / 快適:</strong> 症状を全く、あるいはほぼ自覚しない快適な状態。<br><small style="color: var(--score-0); font-weight: bold;">【ボタン色：緑】</small></td>
+            <td><strong>非常に悪い / 不調:</strong> 全く眠れなかったり、気分が極めて優れない非常につらい状態。<br><small style="color: #8e44ad; font-weight: bold;">【ボタン色：紫】</small></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-1">1</span></td>
+            <td><strong>ごく軽度:</strong> ほんの少し違和感があるが、生活や仕事には全く影響しない状態。<br><small style="color: var(--score-1); font-weight: bold;">【ボタン色：薄緑】</small></td>
+            <td><strong>悪い:</strong> 睡眠が非常に浅かったり、強いイライラや落ち込みがある状態。<br><small style="color: #e74c3c; font-weight: bold;">【ボタン色：赤】</small></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-2">2</span></td>
+            <td><strong>軽度:</strong> 自覚症状があり少し気になるが、問題なく普段通り過ごせる状態。<br><small style="color: #f1c40f; font-weight: bold;">【ボタン色：黄】</small></td>
+            <td><strong>やや悪い:</strong> 途中で目が覚めてしまったり、気分にすっきりしない曇りがある状態。<br><small style="color: #e67e22; font-weight: bold;">【ボタン色：オレンジ】</small></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-3">3</span></td>
+            <td><strong>中等度:</strong> はっきりと不快感があり、ペースを落としたり休憩を取る必要がある状態。<br><small style="color: #e67e22; font-weight: bold;">【ボタン色：オレンジ】</small></td>
+            <td><strong>普通:</strong> 可もなく不可もなく、平穏または普段通りの状態。<br><small style="color: #f1c40f; font-weight: bold;">【ボタン色：黄】</small></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-4">4</span></td>
+            <td><strong>重度:</strong> 症状が強く、日常生活に明確な支障があり、横になって安静にする状態。<br><small style="color: #e74c3c; font-weight: bold;">【ボタン色：赤】</small></td>
+            <td><strong>良い:</strong> 十分によく眠れたり、気分が安定して前向きな状態。<br><small style="color: var(--score-1); font-weight: bold;">【ボタン色：薄緑】</small></td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-5">5</span></td>
+            <td><strong>非常に重度:</strong> 極めて強い症状があり、一人での歩行が困難であったり、身動きが取れず非常につらい状態。<br><small style="color: #8e44ad; font-weight: bold;">【ボタン色：紫】</small></td>
+            <td><strong>非常に良い / 快適:</strong> ぐっすり熟睡できてすっきり快適、または非常に健康的で活発な状態。<br><small style="color: var(--score-0); font-weight: bold;">【ボタン色：緑】</small></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 3. カスタマイズ機能（設定） -->
+    <div class="help-card orange">
+      <h2>⚙️ 症状項目のカスタマイズ</h2>
+      <p>画面右上（スマートフォンの場合はハンバーガーメニュー等）の「設定」リンクから、ご自身の健康状態に合わせて記録項目を柔軟にカスタマイズできます。</p>
+      <ul class="step-list">
+        <li class="step-item">
+          <span class="step-num">A</span>
+          <div class="step-text">
+            <strong>新しい症状の追加:</strong><br>
+            「項目を追加」セクションで、記録したい項目（例：頭痛、肩こり、吐き気など）を登録できます。時間帯別に細かく記録するか、1日の「全体」のみにするかを選択可能です。
+          </div>
+        </li>
+        <li class="step-item">
+          <span class="step-num">B</span>
+          <div class="step-text">
+            <strong>表示順の変更:</strong><br>
+            各項目の左端にある「☰（ドラッグハンドル）」をドラッグ＆ドロップすることで、直感的に記録画面の並び順を変更できます。
+          </div>
+        </li>
+        <li class="step-item">
+          <span class="step-num">C</span>
+          <div class="step-text">
+            <strong>有効・無効（非表示）の切り替え:</strong><br>
+            一時的に使わなくなった項目は、「有効」チェックボックスをオフにすることで、**過去の記録データを残したまま**、記録画面から安全に非表示にできます。
+          </div>
+        </li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>

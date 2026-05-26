@@ -53,13 +53,29 @@ import json
 
 def verify_turnstile(token: str) -> bool:
     """Cloudflare Turnstile トークンの正当性を検証する"""
-    secret_key = os.environ.get("TURNSTILE_SECRET_KEY")
-    if not secret_key:
-        if os.environ.get("ENV") == "production":
-            return False
-        # 開発環境用のデバッグログ
-        print("Warning: 'TURNSTILE_SECRET_KEY' is not set. Skipping Turnstile verification in development mode.")
+    is_production = os.environ.get("ENV") == "production"
+
+    # 開発環境 (ENV != production) の場合は、検証を常に自動パスさせてローカル開発を円滑にする
+    if not is_production:
+        print("[DEBUG] Development mode: Automatically passing Turnstile verification.")
         return True
+
+    # --- 以下は本番環境 (production) のみの厳格な検証処理 ---
+    secret_key = os.environ.get("TURNSTILE_SECRET_KEY")
+    if secret_key:
+        secret_key = secret_key.strip().strip('"\'')
+
+    # 本番環境でシークレットキーが未設定、プレースホルダー、またはテスト用ダミーキーの場合は即座に拒否
+    is_invalid_for_prod = (
+        not secret_key 
+        or secret_key == "" 
+        or "あなたの" in secret_key 
+        or secret_key.startswith("1x0000000")  # テスト用ダミーキーのブロック
+    )
+
+    if is_invalid_for_prod:
+        print("[ERROR] Production Mode: Invalid or missing TURNSTILE_SECRET_KEY!", file=sys.stderr)
+        return False
 
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     data = urllib.parse.urlencode({
@@ -73,7 +89,7 @@ def verify_turnstile(token: str) -> bool:
             result = json.loads(response.read().decode("utf-8"))
             return result.get("success", False)
     except Exception as e:
-        print(f"Turnstile verification failed: {e}", file=sys.stderr)
+        print(f"[ERROR] Production Turnstile verification failed: {e}", file=sys.stderr)
         return False
 
 

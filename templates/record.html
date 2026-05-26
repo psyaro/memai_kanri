@@ -10,6 +10,7 @@
   <header>
     <h1>体調記録</h1>
     <nav class="header-nav">
+      <a href="/help">使い方</a>
       <a href="/settings">設定</a>
       <a href="/logout">ログアウト</a>
     </nav>
@@ -33,7 +34,7 @@
           {% for tp in tps %}
           <div class="tp-block">
             <div class="tp-label">{{ timepoint_labels[tp] }}</div>
-            <div class="score-buttons" data-symptom="{{ s.name }}" data-timepoint="{{ tp }}">
+            <div class="score-buttons" data-symptom="{{ s.name }}" data-timepoint="{{ tp }}" data-reverse="{{ 1 if s.is_reverse else 0 }}">
               <button type="button" class="score-btn" data-score="none">なし</button>
               {% for i in range(6) %}
               <button type="button" class="score-btn" data-score="{{ i }}">{{ i }}</button>

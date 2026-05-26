@@ -5,11 +5,11 @@ from contextlib import contextmanager
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "health.db")
 
 _DEFAULT_SYMPTOMS = [
-    ("sleep",     "昨晩の睡眠", 0, 0),
-    ("dizziness", "めまい",     1, 1),
-    ("flushing",  "ほてり",     1, 2),
-    ("fatigue",   "疲労感",     1, 3),
-    ("mental",    "メンタル",   1, 4),
+    ("sleep",     "昨晩の睡眠", 0, 0, 1), # name, label, use_timepoints, sort_order, is_reverse
+    ("dizziness", "めまい",     1, 1, 0),
+    ("flushing",  "ほてり",     1, 2, 0),
+    ("fatigue",   "疲労感",     1, 3, 0),
+    ("mental",    "メンタル",   1, 4, 1),
 ]
 
 
@@ -42,6 +42,7 @@ def init_db():
                         use_timepoints INTEGER NOT NULL DEFAULT 1,
                         sort_order INTEGER NOT NULL DEFAULT 0,
                         active INTEGER NOT NULL DEFAULT 1,
+                        is_reverse INTEGER NOT NULL DEFAULT 0,
                         UNIQUE(user_id, name)
                     );
                 """)
@@ -57,14 +58,20 @@ def init_db():
                     for row in old_symptoms:
                         conn.execute(
                             """
-                            INSERT INTO symptoms (user_id, name, label, use_timepoints, sort_order, active)
-                            VALUES (?,?,?,?,?,?)
+                            INSERT INTO symptoms (user_id, name, label, use_timepoints, sort_order, active, is_reverse)
+                            VALUES (?,?,?,?,?,?,0)
                             """,
                             (uid, row["name"], row["label"], row["use_timepoints"], row["sort_order"], row["active"])
                         )
                 
                 # 旧テーブルの削除
                 conn.execute("DROP TABLE symptoms_old")
+            
+            # is_reverse カラムが無い場合は追加する
+            table_info = conn.execute("PRAGMA table_info(symptoms)").fetchall()
+            has_is_reverse = any(row["name"] == "is_reverse" for row in table_info)
+            if not has_is_reverse:
+                conn.execute("ALTER TABLE symptoms ADD COLUMN is_reverse INTEGER NOT NULL DEFAULT 0")
         else:
             # テーブルが存在しない場合は新規作成
             conn.execute("""
@@ -76,6 +83,7 @@ def init_db():
                     use_timepoints INTEGER NOT NULL DEFAULT 1,
                     sort_order INTEGER NOT NULL DEFAULT 0,
                     active INTEGER NOT NULL DEFAULT 1,
+                    is_reverse INTEGER NOT NULL DEFAULT 0,
                     UNIQUE(user_id, name)
                 );
             """)
@@ -128,10 +136,10 @@ def create_user(username: str, password_hash: str):
         )
         user_id = cursor.lastrowid
         # 新規作成されたユーザーにデフォルト症状を追加
-        for name, label, use_tp, order in _DEFAULT_SYMPTOMS:
+        for name, label, use_tp, order, is_rev in _DEFAULT_SYMPTOMS:
             conn.execute(
-                "INSERT OR IGNORE INTO symptoms (user_id, name, label, use_timepoints, sort_order) VALUES (?,?,?,?,?)",
-                (user_id, name, label, use_tp, order),
+                "INSERT OR IGNORE INTO symptoms (user_id, name, label, use_timepoints, sort_order, is_reverse) VALUES (?,?,?,?,?,?)",
+                (user_id, name, label, use_tp, order, is_rev),
             )
 
 
@@ -153,7 +161,7 @@ def get_all_symptoms(user_id: int) -> list:
         ).fetchall()
 
 
-def add_symptom(user_id: int, name: str, label: str, use_timepoints: int = 1) -> bool:
+def add_symptom(user_id: int, name: str, label: str, use_timepoints: int = 1, is_reverse: int = 0) -> bool:
     try:
         with get_conn() as conn:
             max_order = conn.execute(
@@ -161,19 +169,19 @@ def add_symptom(user_id: int, name: str, label: str, use_timepoints: int = 1) ->
                 (user_id,)
             ).fetchone()[0]
             conn.execute(
-                "INSERT INTO symptoms (user_id, name, label, use_timepoints, sort_order) VALUES (?,?,?,?,?)",
-                (user_id, name, label, use_timepoints, max_order + 1),
+                "INSERT INTO symptoms (user_id, name, label, use_timepoints, sort_order, is_reverse) VALUES (?,?,?,?,?,?)",
+                (user_id, name, label, use_timepoints, max_order + 1, is_reverse),
             )
         return True
     except sqlite3.IntegrityError:
         return False
 
 
-def update_symptom(user_id: int, symptom_id: int, label: str, use_timepoints: int, active: int):
+def update_symptom(user_id: int, symptom_id: int, label: str, use_timepoints: int, active: int, is_reverse: int):
     with get_conn() as conn:
         conn.execute(
-            "UPDATE symptoms SET label=?, use_timepoints=?, active=? WHERE id=? AND user_id=?",
-            (label, use_timepoints, active, symptom_id, user_id),
+            "UPDATE symptoms SET label=?, use_timepoints=?, active=?, is_reverse=? WHERE id=? AND user_id=?",
+            (label, use_timepoints, active, is_reverse, symptom_id, user_id),
         )
 
 
