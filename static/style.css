@@ -242,21 +242,7 @@ main {
   padding: 8px 0 24px;
 }
 
-.save-btn {
-  width: 100%;
-  padding: 16px;
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius);
-  font-size: 1.05rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s;
-}
 
-.save-btn:hover { background: var(--primary-dark); }
-.save-btn:active { transform: scale(0.98); }
 
 .clear-btn {
   width: 100%;
@@ -401,13 +387,80 @@ main {
 
 .btn-add:hover { background: var(--primary-dark); }
 
-/* ---- Save msg ---- */
+/* ---- Register Symptom Selection ---- */
+.symptom-selection {
+  margin-bottom: 20px;
+  background: var(--bg);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.symptom-selection-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.symptom-selection-title small {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.symptom-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.symptom-checkbox-label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0 !important;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.symptom-checkbox-label:has(input:checked) {
+  background: #e6f7ff;
+  border-color: #91d5ff;
+  color: #0050b3;
+  font-weight: 600;
+}
+
+.symptom-checkbox-label input {
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+
+/* ---- Save msg (Toast) ---- */
 .save-msg {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
   background: #eafaf1;
   color: #1e8449;
-  padding: 12px 16px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 30px;
   font-weight: 600;
-  text-align: center;
-  margin-bottom: 12px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  transition: opacity 0.3s, background-color 0.3s;
+}
+
+.save-msg[hidden] {
+  display: none !important;
 }

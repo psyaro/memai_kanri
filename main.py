@@ -135,7 +135,12 @@ async def register_page(request: Request):
     turnstile_site_key = get_turnstile_site_key()
     return templates.TemplateResponse(
         "register.html",
-        {"request": request, "error": None, "turnstile_site_key": turnstile_site_key}
+        {
+            "request": request, 
+            "error": None, 
+            "turnstile_site_key": turnstile_site_key,
+            "default_symptoms": database._DEFAULT_SYMPTOMS
+        }
     )
 
 
@@ -145,6 +150,7 @@ async def register(
     username: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
+    symptoms: list[str] = Form(default=[]),
     cf_turnstile_response: str = Form(None, alias="cf-turnstile-response"),
 ):
     turnstile_site_key = get_turnstile_site_key()
@@ -157,7 +163,8 @@ async def register(
             {
                 "request": request,
                 "error": "ユーザー名とパスワードを入力してください",
-                "turnstile_site_key": turnstile_site_key
+                "turnstile_site_key": turnstile_site_key,
+                "default_symptoms": database._DEFAULT_SYMPTOMS
             },
             status_code=400,
         )
@@ -173,7 +180,8 @@ async def register(
             {
                 "request": request,
                 "error": "ボットチェックの検証に失敗しました。リロードしてお試しください。",
-                "turnstile_site_key": turnstile_site_key
+                "turnstile_site_key": turnstile_site_key,
+                "default_symptoms": database._DEFAULT_SYMPTOMS
             },
             status_code=400,
         )
@@ -186,7 +194,8 @@ async def register(
             {
                 "request": request,
                 "error": "ユーザー名は3〜20文字の半角英数字（アンダースコア含む）で入力してください",
-                "turnstile_site_key": turnstile_site_key
+                "turnstile_site_key": turnstile_site_key,
+                "default_symptoms": database._DEFAULT_SYMPTOMS
             },
             status_code=400,
         )
@@ -198,7 +207,8 @@ async def register(
             {
                 "request": request,
                 "error": "パスワードは8文字以上で入力してください",
-                "turnstile_site_key": turnstile_site_key
+                "turnstile_site_key": turnstile_site_key,
+                "default_symptoms": database._DEFAULT_SYMPTOMS
             },
             status_code=400,
         )
@@ -210,7 +220,8 @@ async def register(
             {
                 "request": request,
                 "error": "パスワードが一致しません",
-                "turnstile_site_key": turnstile_site_key
+                "turnstile_site_key": turnstile_site_key,
+                "default_symptoms": database._DEFAULT_SYMPTOMS
             },
             status_code=400,
         )
@@ -223,14 +234,15 @@ async def register(
             {
                 "request": request,
                 "error": "そのユーザー名はすでに使用されています",
-                "turnstile_site_key": turnstile_site_key
+                "turnstile_site_key": turnstile_site_key,
+                "default_symptoms": database._DEFAULT_SYMPTOMS
             },
             status_code=400,
         )
 
     # 新規登録
     hashed = auth.hash_password(password)
-    database.create_user(username, hashed)
+    database.create_user(username, hashed, symptoms)
 
     # 登録直後の自動ログイン
     user = database.get_user_by_username(username)

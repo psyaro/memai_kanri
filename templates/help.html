@@ -155,8 +155,8 @@
         <li class="step-item">
           <span class="step-num">4</span>
           <div class="step-text">
-            <strong>保存する:</strong><br>
-            最後に一番下の「保存する」ボタンを押すと、自動的にデータベースに保存され「保存しました」とメッセージが表示されます。
+            <strong>自動保存（オートセーブ）:</strong><br>
+            スコアボタンを選択した時や、備考欄の入力が完了したタイミングで自動的にデータが保存されます。画面の右下に「保存しました」とステータスが表示されるため、保存ボタンを毎回押す必要はありません。
           </div>
         </li>
       </ul>
@@ -262,6 +262,18 @@
             一時的に使わなくなった項目は、「有効」チェックボックスをオフにすることで、**過去の記録データを残したまま**、記録画面から安全に非表示にできます。
           </div>
         </li>
+      </ul>
+    </div>
+    </div>
+
+    <!-- 4. 更新履歴 -->
+    <div class="help-card" style="border-left-color: #9e9e9e;">
+      <h2>📝 更新履歴</h2>
+      <ul style="font-size: 0.88rem; line-height: 1.6; padding-left: 20px; color: var(--text);">
+        <li><strong>2026-05-27:</strong> 自動保存（オートセーブ）と連打・重複保存防止機能を追加</li>
+        <li><strong>2026-05-26:</strong> 逆スコア設定（睡眠・メンタル向け）と配色自動反転機能、使い方ガイドを追加</li>
+        <li><strong>2026-05-25:</strong> セキュリティ強化（ログイン画面のTurnstile追加、セッション管理のリファクタリングなど）</li>
+        <li><strong>2026-05-25:</strong> 新規登録機能の追加とボット対策（Cloudflare Turnstile）の実装</li>
       </ul>
     </div>
   </main>

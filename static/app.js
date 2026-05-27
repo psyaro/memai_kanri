@@ -14,7 +14,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const isSelected = btn.classList.contains("selected");
       group.querySelectorAll(".score-btn").forEach((b) => b.classList.remove("selected"));
       if (!isSelected) btn.classList.add("selected");
+
+      requestAutoSave(500); // ボタン連打防止（500msのデバウンス）
     });
+  });
+
+  // 備考：デバウンスで保存
+  noteInput.addEventListener("input", () => {
+    requestAutoSave(1000); // テキスト入力は1000msのデバウンス
   });
 
   document.getElementById("btn-prev").addEventListener("click", () => shiftDate(-1));
@@ -33,21 +40,34 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!confirm("この日の記録をすべてクリアしますか？")) return;
     clearAll();
     noteInput.value = "";
-    const date = dateInput.value;
-    const payload = [];
-    document.querySelectorAll(".score-buttons").forEach((group) => {
-      payload.push({ date, symptom: group.dataset.symptom, timepoint: group.dataset.timepoint, score: null });
-    });
-    await fetch("/api/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, entries: payload, note: "" }),
-    });
+    await executeSave();
     showSaveMsg("クリアしました");
   });
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault(); // エンターキーなどでの意図しない送信を防ぐ
+  });
+
+  let saveTimeout = null;
+  let isSaving = false;
+
+  function requestAutoSave(delay) {
+    showSaveMsg("入力中...", true);
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      executeSave();
+    }, delay);
+  }
+
+  async function executeSave() {
+    if (isSaving) {
+      // すでに保存中の場合は、取りこぼしを防ぐために再スケジュールする
+      requestAutoSave(500);
+      return;
+    }
+
+    isSaving = true;
+    showSaveMsg("保存中...", true);
     const date = dateInput.value;
     const entries = collectEntries(date);
     const note = noteInput.value;
@@ -60,12 +80,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (res.ok) {
         showSaveMsg("保存しました");
       } else {
-        alert("保存に失敗しました");
+        showSaveMsg("保存に失敗しました", false, true);
       }
     } catch {
-      alert("通信エラーが発生しました");
+      showSaveMsg("通信エラーが発生しました", false, true);
+    } finally {
+      isSaving = false;
     }
-  });
+  }
 
   function collectEntries(date) {
     const entries = [];
@@ -109,9 +131,28 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch {}
   }
 
-  function showSaveMsg(text) {
+  let msgTimeout = null;
+  function showSaveMsg(text, isPending = false, isError = false) {
     saveMsg.textContent = text;
     saveMsg.hidden = false;
-    setTimeout(() => { saveMsg.hidden = true; }, 2500);
+
+    if (isError) {
+      saveMsg.style.backgroundColor = "#fdecea";
+      saveMsg.style.color = "#c0392b";
+    } else if (isPending) {
+      saveMsg.style.backgroundColor = "#fff3cd";
+      saveMsg.style.color = "#856404";
+    } else {
+      saveMsg.style.backgroundColor = "#eafaf1";
+      saveMsg.style.color = "#1e8449";
+    }
+
+    if (msgTimeout) clearTimeout(msgTimeout);
+    
+    if (!isPending && !isError) {
+      msgTimeout = setTimeout(() => { 
+        saveMsg.hidden = true; 
+      }, 2500);
+    }
   }
 });

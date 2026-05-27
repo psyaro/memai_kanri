@@ -128,7 +128,11 @@ def get_user_by_username(username: str):
         ).fetchone()
 
 
-def create_user(username: str, password_hash: str):
+def create_user(username: str, password_hash: str, selected_symptoms: list[str] = None):
+    # 初期状態で睡眠、メンタル、疲労感だけを有効にする
+    if selected_symptoms is None:
+        selected_symptoms = ["sleep", "mental", "fatigue"]
+
     with get_conn() as conn:
         cursor = conn.execute(
             "INSERT INTO users (username, password_hash) VALUES (?, ?)",
@@ -137,9 +141,10 @@ def create_user(username: str, password_hash: str):
         user_id = cursor.lastrowid
         # 新規作成されたユーザーにデフォルト症状を追加
         for name, label, use_tp, order, is_rev in _DEFAULT_SYMPTOMS:
+            active = 1 if name in selected_symptoms else 0
             conn.execute(
-                "INSERT OR IGNORE INTO symptoms (user_id, name, label, use_timepoints, sort_order, is_reverse) VALUES (?,?,?,?,?,?)",
-                (user_id, name, label, use_tp, order, is_rev),
+                "INSERT OR IGNORE INTO symptoms (user_id, name, label, use_timepoints, sort_order, active, is_reverse) VALUES (?,?,?,?,?,?,?)",
+                (user_id, name, label, use_tp, order, active, is_rev),
             )
 
 

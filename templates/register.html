@@ -24,6 +24,20 @@
       <label>パスワード（確認）
         <input type="password" name="password_confirm" autocomplete="new-password" minlength="8" required>
       </label>
+
+      <!-- 症状選択 -->
+      <div class="symptom-selection">
+        <p class="symptom-selection-title">どのような症状を記録しますか？<br><small>※後から「設定」で自由に変更できます</small></p>
+        <div class="symptom-checkboxes">
+          {% for symptom in default_symptoms %}
+            <label class="symptom-checkbox-label">
+              <input type="checkbox" name="symptoms" value="{{ symptom[0] }}" 
+                {% if symptom[0] in ['sleep', 'mental', 'fatigue'] %}checked{% endif %}>
+              <span class="symptom-checkbox-text">{{ symptom[1] }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
       
       <!-- Turnstile Widget -->
       {% if turnstile_site_key %}
