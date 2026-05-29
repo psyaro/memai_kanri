@@ -150,22 +150,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 直近30日分の一括同期処理
+  // 直近90日分の一括同期処理
   if (batchFetch30dBtn && batchClearFetch30dBtn) {
     async function runBatch30d(force) {
-      showSaveMsg("30日分の一括同期中...", true);
+      showSaveMsg("90日分の一括同期中...", true);
       batchFetch30dBtn.disabled = true;
       batchClearFetch30dBtn.disabled = true;
       fetchWbgtBtn.disabled = true;
       clearCacheBtn.disabled = true;
 
-      // 今日と30日前の日付を計算 (日本時間基準)
+      // 今日と90日前の日付を計算 (日本時間基準)
       const todayObj = new Date();
       const jstOffset = 9 * 60;
       const localTime = new Date(todayObj.getTime() + (todayObj.getTimezoneOffset() + jstOffset) * 60000);
       const toDate = localTime.toISOString().slice(0, 10);
-      
-      const fromTime = new Date(localTime.getTime() - 29 * 24 * 60 * 60 * 1000);
+
+      const fromTime = new Date(localTime.getTime() - 89 * 24 * 60 * 60 * 1000);
       const fromDate = fromTime.toISOString().slice(0, 10);
 
       try {
@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     batchFetch30dBtn.addEventListener("click", () => runBatch30d(0));
     batchClearFetch30dBtn.addEventListener("click", () => {
-      if (confirm("直近30日間の気象キャッシュをすべて破棄し、外部APIから最新の情報を一括再取得します。よろしいですか？")) {
+      if (confirm("直近90日間の気象キャッシュをすべて破棄し、外部APIから最新の情報を一括再取得します。よろしいですか？")) {
         runBatch30d(1);
       }
     });

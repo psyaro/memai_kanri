@@ -749,8 +749,8 @@ async def get_tokyo_weather_batch(
     if fd > td:
         return JSONResponse({"error": "start date must be before end date"}, status_code=400)
         
-    if (td - fd).days > 60:
-        return JSONResponse({"error": "date range too wide (max 60 days)"}, status_code=400)
+    if (td - fd).days > 100:
+        return JSONResponse({"error": "date range too wide (max 100 days)"}, status_code=400)
         
     # ユーザー設定の居住地を取得
     user = database.get_user_by_username_by_id(user_id)
@@ -759,8 +759,8 @@ async def get_tokyo_weather_batch(
     lat = city_info["lat"]
     lon = city_info["lon"]
         
-    # 外部APIを1回だけ呼び出し、期間全体の気象データ（1時間ごと）を取得
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,shortwave_radiation&wind_speed_unit=ms&timezone=Asia%2FTokyo&start_date={from_date}&end_date={to_date}"
+    # アーカイブAPIで期間全体の実測気象データを一括取得（forecast APIより遡及範囲が広い）
+    url = f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,shortwave_radiation&wind_speed_unit=ms&timezone=Asia%2FTokyo&start_date={from_date}&end_date={to_date}"
     
     import time
     max_retries = 3

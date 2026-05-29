@@ -285,6 +285,57 @@
       letter-spacing: 0.5px;
       display: inline-block;
       vertical-align: middle;
+    .view-mode-selector button.active {
+      background: var(--card-bg) !important;
+      color: var(--text) !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+    }
+    .view-mode-selector button {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      padding: 5px 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+    }
+    .summary-table th, .summary-table td {
+      border: 1px solid var(--border);
+      padding: 10px 8px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .summary-table th {
+      background: #f0f4f8;
+      font-weight: 700;
+      color: var(--text);
+    }
+    
+    /* 印刷時の出し分け */
+    @media print {
+      .view-mode-selector { display: none !important; }
+      body.print-summary #report-summary-view { display: block !important; }
+      body.print-summary #report-detail-view { display: none !important; }
+      body.print-detail #report-summary-view { display: none !important; }
+      body.print-detail #report-detail-view { display: block !important; }
+      
+      .summary-table th {
+        background-color: #f0f4f8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .summary-table td, .summary-table th {
+        border: 1px solid #aaa !important;
+      }
     }
   </style>
 </head>
@@ -297,9 +348,9 @@
     <h1 style="margin-right: 8px;">🖨️ 印刷レポート</h1>
     <form class="range-form" method="get" action="/print">
       <label>開始</label>
-      <input type="date" id="print-from-date" name="from" value="{{ from_date }}" max="{{ today }}">
+      <input type="date" id="print-from-date" name="from_date" value="{{ from_date }}" max="{{ today }}">
       <label>終了</label>
-      <input type="date" id="print-to-date" name="to" value="{{ to_date }}" max="{{ today }}">
+      <input type="date" id="print-to-date" name="to_date" value="{{ to_date }}" max="{{ today }}">
       <button type="submit">表示</button>
     </form>
     
@@ -310,7 +361,13 @@
       <span id="batch-status" style="font-size: 0.8rem; font-weight: bold; color: var(--muted); margin-left: 4px;" hidden></span>
     </div>
     
-    <button class="btn-print" onclick="window.print()">🖨️ 印刷する</button>
+    <!-- 表示モード切り替えスイッチ -->
+    <div class="view-mode-selector" style="display: flex; background: #e2e8f0; padding: 3px; border-radius: 8px; margin-left: auto; gap: 4px;">
+      <button type="button" id="btn-mode-summary" class="mode-btn active" style="padding: 4px 12px; font-size: 0.8rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s;">一覧表示（簡潔）</button>
+      <button type="button" id="btn-mode-detail" class="mode-btn" style="padding: 4px 12px; font-size: 0.8rem; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s;">詳細表示（全出力）</button>
+    </div>
+    
+    <button class="btn-print" onclick="window.print()" style="margin-left: 0;">🖨️ 印刷する</button>
   </div>
 </div>
 
@@ -370,7 +427,121 @@
   {% for s in symptoms %}{% if s.use_timepoints %}{% set ns.has_tp = true %}{% endif %}{% endfor %}
   {% set tp_list = timepoints | reject('equalto', 'overall') | list %}
 
-  {% for date in dates %}
+  <!-- 簡潔な一覧表示用テーブル (Mode A) -->
+  <div id="report-summary-view" class="report-view-mode">
+    <div style="background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow-x: auto; margin-bottom: 24px;">
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th style="width: 105px;">日付</th>
+            <th style="width: 45px;">曜日</th>
+            {% for s in symptoms %}
+              <th>
+                {{ s.label }}{% if s.is_reverse %}<small style="color:var(--primary); font-size:0.68rem; display:block; font-weight:normal;">↑良</small>{% endif %}
+              </th>
+            {% endfor %}
+            {% if medication_timepoints %}
+              <th style="width: 130px; color: #27ae60;">服薬 💊</th>
+            {% endif %}
+            <th style="width: 120px; color: #e67e22;">暑さ指数</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for date in dates %}
+            {% set rec = records_by_date.get(date, {}) %}
+            {% set w_rec = wbgt_records.get(date) %}
+            <tr style="{% if loop.index is even %}background-color: #fafcfd;{% endif %}">
+              <td style="font-weight: 600; text-align: left; padding-left: 12px;">{{ date }}</td>
+              <td><span class="day-dow" style="background: #e2e8f0; color: #4a5568; padding: 2px 5px; border-radius: 4px; font-size: 0.72rem; font-weight: bold;">{{ dow_ja[date | to_weekday] }}</span></td>
+              
+              {% for s in symptoms %}
+                <td>
+                  {# その日の該当症状の最大スコアを算出 #}
+                  {% set max_score_ns = namespace(val=-2) %}
+                  {% if s.use_timepoints %}
+                    {% for tp in tp_list %}
+                      {% set key = s.name ~ '_' ~ tp %}
+                      {% set val = rec.get(key) %}
+                      {% if val is not none and val != -1 %}
+                        {% if max_score_ns.val == -2 or val > max_score_ns.val %}
+                          {% set max_score_ns.val = val %}
+                        {% endif %}
+                      {% elif val == -1 and max_score_ns.val == -2 %}
+                        {% set max_score_ns.val = -1 %}
+                      {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    {% set key = s.name ~ '_overall' %}
+                    {% set val = rec.get(key) %}
+                    {% if val is not none %}
+                      {% set max_score_ns.val = val %}
+                    {% endif %}
+                  {% endif %}
+                  
+                  {# バッジとして描画 #}
+                  {% set score = max_score_ns.val %}
+                  {% if score == -2 %}
+                    <span class="score-empty">•</span>
+                  {% elif score == -1 %}
+                    <span class="score-badge score-none" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.76rem; border-radius: 4px;">—</span>
+                  {% else %}
+                    <span class="score-badge score-{{ score }}" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.76rem; border-radius: 4px;" title="最大スコア: {{ score }}">{{ score }}</span>
+                  {% endif %}
+                </td>
+              {% endfor %}
+              
+              {# 服薬状況 #}
+              {% if medication_timepoints %}
+                <td>
+                  {% set med_ns = namespace(has_med=false) %}
+                  <div style="display: flex; gap: 3px; justify-content: center; flex-wrap: wrap;">
+                    {% for tp in medication_timepoints %}
+                      {% set key = '__medication___' ~ tp %}
+                      {% if rec.get(key) == 1 %}
+                        {% set med_ns.has_med = true %}
+                        <span style="background-color: #eafaf1; color: #27ae60; border: 1px solid #c2ebd0; padding: 1px 4px; border-radius: 6px; font-size: 0.68rem; font-weight: bold;" title="服用済み">
+                          {% if tp == "morning" %}朝
+                          {% elif tp == "afternoon" %}昼
+                          {% elif tp == "evening" %}夜
+                          {% elif tp == "before_sleep" %}眠
+                          {% elif tp == "overall" %}全
+                          {% endif %}
+                        </span>
+                      {% endif %}
+                    {% endfor %}
+                    {% if not med_ns.has_med %}
+                      <span style="color: #cbd5e0; font-size: 0.72rem; font-style: italic;">なし</span>
+                    {% endif %}
+                  </div>
+                </td>
+              {% endif %}
+              
+              {# 暑さ指数 #}
+              <td style="font-weight: bold;">
+                {% if w_rec and w_rec.wbgt is not none %}
+                  <span style="color: #e67e22; font-size: 0.92rem;">{{ w_rec.wbgt | round(1) }}</span> <small style="font-size: 0.65rem; font-weight: normal; color: var(--muted);">℃</small>
+                  <span style="font-size: 0.6rem; padding: 1px 3px; border-radius: 3px; font-weight: normal; margin-left: 2px; display: inline-block; vertical-align: middle;
+                    {% if w_rec.is_forecast == 1 %}
+                      background-color: #fff9db; border: 1px solid #f59f00; color: #f59f00;
+                    {% else %}
+                      background-color: #ebfbee; border: 1px solid #40c057; color: #40c057;
+                    {% endif %}">
+                    {{ '予' if w_rec.is_forecast == 1 else '実' }}
+                  </span>
+                {% else %}
+                  <span style="color: #cbd5e0; font-weight: normal;">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 詳細カード表示 (Mode B) -->
+  <div id="report-detail-view" class="report-view-mode" style="display: none;">
+    {% for date in dates %}
   {% set rec = records_by_date.get(date, {}) %}
   {% set note_text = notes_by_date.get(date, '') %}
 
@@ -490,6 +661,7 @@
   </div>
 
   {% endfor %}
+  </div>
 
   <!-- 印刷用免責フッター -->
   <div style="margin-top: 30px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--muted); text-align: center; line-height: 1.45; break-inside: avoid; page-break-inside: avoid;">
@@ -501,6 +673,42 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
+    // 表示モードの切り替えロジック
+    const btnSummary = document.getElementById("btn-mode-summary");
+    const btnDetail = document.getElementById("btn-mode-detail");
+    const summaryView = document.getElementById("report-summary-view");
+    const detailView = document.getElementById("report-detail-view");
+
+    if (btnSummary && btnDetail) {
+      btnSummary.addEventListener("click", () => {
+        btnSummary.classList.add("active");
+        btnDetail.classList.remove("active");
+        summaryView.style.display = "block";
+        detailView.style.display = "none";
+        document.body.classList.add("print-summary");
+        document.body.classList.remove("print-detail");
+        localStorage.setItem("print_view_mode", "summary");
+      });
+
+      btnDetail.addEventListener("click", () => {
+        btnDetail.classList.add("active");
+        btnSummary.classList.remove("active");
+        summaryView.style.display = "none";
+        detailView.style.display = "block";
+        document.body.classList.add("print-detail");
+        document.body.classList.remove("print-summary");
+        localStorage.setItem("print_view_mode", "detail");
+      });
+
+      // 初期状態の復元
+      const savedMode = localStorage.getItem("print_view_mode") || "summary";
+      if (savedMode === "detail") {
+        btnDetail.click();
+      } else {
+        btnSummary.click();
+      }
+    }
+
     // サーバーから渡されたJSONデータを取得
     const dates = {{ dates_json | safe }};
     const recordsByDate = {{ records_by_date_json | safe }};
