@@ -531,7 +531,8 @@ async def save_records(
         timepoint = entry.get("timepoint")
         score = entry.get("score")
 
-        if symptom not in valid_symptoms or timepoint not in TIMEPOINTS:
+        is_medication = (symptom == "__medication__")
+        if (not is_medication and symptom not in valid_symptoms) or timepoint not in TIMEPOINTS:
             return JSONResponse({"error": "invalid data"}, status_code=400)
         if score is not None and score not in range(-1, 6):
             return JSONResponse({"error": "invalid score"}, status_code=400)
