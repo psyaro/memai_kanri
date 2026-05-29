@@ -485,7 +485,8 @@
                   {% elif score == -1 %}
                     <span class="score-badge score-none" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.76rem; border-radius: 4px;">—</span>
                   {% else %}
-                    <span class="score-badge score-{{ score }}" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.76rem; border-radius: 4px;" title="最大スコア: {{ score }}">{{ score }}</span>
+                    {% set badge_class = (5 - score) if s.is_reverse else score %}
+                    <span class="score-badge score-{{ badge_class }}" style="width: 24px; height: 24px; line-height: 24px; font-size: 0.76rem; border-radius: 4px;" title="最大スコア: {{ score }}">{{ score }}</span>
                   {% endif %}
                 </td>
               {% endfor %}
@@ -580,7 +581,8 @@
               {% elif score == -1 %}
                 <span class="score-badge score-none">—</span>
               {% else %}
-                <span class="score-badge score-{{ score }}">{{ score }}</span>
+                {% set badge_class = (5 - score) if s.is_reverse else score %}
+                <span class="score-badge score-{{ badge_class }}">{{ score }}</span>
               {% endif %}
             </td>
             {% endfor %}
@@ -593,7 +595,8 @@
               {% elif score == -1 %}
                 <span class="score-badge score-none">—</span>
               {% else %}
-                <span class="score-badge score-{{ score }}">{{ score }}</span>
+                {% set badge_class = (5 - score) if s.is_reverse else score %}
+                <span class="score-badge score-{{ badge_class }}">{{ score }}</span>
               {% endif %}
             </td>
           {% endif %}
