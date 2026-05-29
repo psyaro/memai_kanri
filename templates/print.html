@@ -154,11 +154,11 @@
     .symptom-table {
       width: 100%;
       border-collapse: collapse;
-      border: 1px solid #cbd5e0;
+      border: 1px solid #a0aec0;
     }
 
     .symptom-table th, .symptom-table td {
-      border: 1px solid #cbd5e0;
+      border: 1px solid #a0aec0;
       padding: 6px 10px;
       vertical-align: middle;
     }
@@ -282,6 +282,7 @@
       letter-spacing: 0.5px;
       display: inline-block;
       vertical-align: middle;
+    }
     .view-mode-selector button.active {
       background: var(--card-bg) !important;
       color: var(--text) !important;
@@ -304,11 +305,12 @@
       width: 100%;
       border-collapse: collapse;
       background: var(--card-bg);
-      border: 1px solid #cbd5e0;
+      border: 2px solid #a0aec0;
+      margin: 0 auto;
     }
     .summary-table th, .summary-table td {
-      border: 1px solid #cbd5e0;
-      padding: 10px 8px;
+      border: 1px solid #a0aec0;
+      padding: 12px 10px;
       text-align: center;
       vertical-align: middle;
     }
@@ -316,6 +318,7 @@
       background: #f0f4f8;
       font-weight: 700;
       color: var(--text);
+      border-bottom: 2px solid #a0aec0;
     }
     
     /* 印刷時の出し分け */
@@ -430,7 +433,7 @@
 
   <!-- 簡潔な一覧表示用テーブル (Mode A) -->
   <div id="report-summary-view" class="report-view-mode">
-    <div style="background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow-x: auto; margin-bottom: 24px;">
+    <div style="overflow-x: auto; margin-bottom: 24px; border-radius: var(--radius);">
       <table class="summary-table">
         <thead>
           <tr>
@@ -452,7 +455,7 @@
             {% set rec = records_by_date.get(date, {}) %}
             {% set w_rec = wbgt_records.get(date) %}
             <tr style="{% if loop.index is even %}background-color: #fafcfd;{% endif %}">
-              <td style="font-weight: 600; text-align: left; padding-left: 12px;">{{ date }}</td>
+              <td style="font-weight: 600; text-align: center;">{{ date }}</td>
               <td><span class="day-dow" style="background: #e2e8f0; color: #4a5568; padding: 2px 5px; border-radius: 4px; font-size: 0.72rem; font-weight: bold;">{{ dow_ja[date | to_weekday] }}</span></td>
               
               {% for s in symptoms %}
