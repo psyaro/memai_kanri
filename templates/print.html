@@ -154,27 +154,24 @@
     .symptom-table {
       width: 100%;
       border-collapse: collapse;
+      border: 1px solid #cbd5e0;
+    }
+
+    .symptom-table th, .symptom-table td {
+      border: 1px solid #cbd5e0;
+      padding: 6px 10px;
+      vertical-align: middle;
     }
 
     .symptom-table th {
       background: #f0f4f8;
-      padding: 6px 10px;
       font-size: 0.78rem;
       font-weight: 700;
-      color: var(--muted);
+      color: var(--text);
       text-align: center;
-      border-bottom: 1px solid var(--border);
     }
 
     .symptom-table th.symptom-col { text-align: left; }
-
-    .symptom-table td {
-      padding: 6px 10px;
-      border-bottom: 1px solid #f0f4f8;
-      vertical-align: middle;
-    }
-
-    .symptom-table tr:last-child td { border-bottom: none; }
     .symptom-table td.symptom-name { font-size: 0.88rem; font-weight: 600; }
 
     .score-cell { text-align: center; }
@@ -307,9 +304,10 @@
       width: 100%;
       border-collapse: collapse;
       background: var(--card-bg);
+      border: 1px solid #cbd5e0;
     }
     .summary-table th, .summary-table td {
-      border: 1px solid var(--border);
+      border: 1px solid #cbd5e0;
       padding: 10px 8px;
       text-align: center;
       vertical-align: middle;
@@ -334,7 +332,10 @@
         print-color-adjust: exact;
       }
       .summary-table td, .summary-table th {
-        border: 1px solid #aaa !important;
+        border: 1px solid #999 !important;
+      }
+      .symptom-table td, .symptom-table th {
+        border: 1px solid #999 !important;
       }
     }
   </style>
@@ -456,30 +457,42 @@
               
               {% for s in symptoms %}
                 <td>
-                  {# その日の該当症状の最大スコアを算出 #}
-                  {% set max_score_ns = namespace(val=-2) %}
+                  {# その日の該当症状の代表スコア（通常は最大値、逆スコアは最小値）を算出 #}
+                  {% set score_ns = namespace(val=-2) %}
                   {% if s.use_timepoints %}
                     {% for tp in tp_list %}
                       {% set key = s.name ~ '_' ~ tp %}
                       {% set val = rec.get(key) %}
                       {% if val is not none and val != -1 %}
-                        {% if max_score_ns.val == -2 or val > max_score_ns.val %}
-                          {% set max_score_ns.val = val %}
+                        {% if score_ns.val == -2 %}
+                          {% set score_ns.val = val %}
+                        {% else %}
+                          {% if s.is_reverse %}
+                            {# 逆スコア（↑良）の場合は、最も悪い状態である「最小値（MIN）」を採用 #}
+                            {% if val < score_ns.val %}
+                              {% set score_ns.val = val %}
+                            {% endif %}
+                          {% else %}
+                            {# 通常の症状は、最も悪い状態である「最大値（MAX）」を採用 #}
+                            {% if val > score_ns.val %}
+                              {% set score_ns.val = val %}
+                            {% endif %}
+                          {% endif %}
                         {% endif %}
-                      {% elif val == -1 and max_score_ns.val == -2 %}
-                        {% set max_score_ns.val = -1 %}
+                      {% elif val == -1 and score_ns.val == -2 %}
+                        {% set score_ns.val = -1 %}
                       {% endif %}
                     {% endfor %}
                   {% else %}
                     {% set key = s.name ~ '_overall' %}
                     {% set val = rec.get(key) %}
                     {% if val is not none %}
-                      {% set max_score_ns.val = val %}
+                      {% set score_ns.val = val %}
                     {% endif %}
                   {% endif %}
                   
                   {# バッジとして描画 #}
-                  {% set score = max_score_ns.val %}
+                  {% set score = score_ns.val %}
                   {% if score == -2 %}
                     <span class="score-empty">•</span>
                   {% elif score == -1 %}
@@ -739,7 +752,9 @@
             scores.push(val);
           }
         }
-        return scores.length > 0 ? Math.max(...scores) : null;
+        if (scores.length === 0) return null;
+        // 通常の症状は最も悪い「最大値(MAX)」を採用し、逆スコア（睡眠・メンタル等）は最も悪い「最小値(MIN)」を採用する
+        return s.is_reverse === 1 ? Math.min(...scores) : Math.max(...scores);
       });
 
       // プレミアムな調和するカラーパレット
