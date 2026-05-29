@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SymptoPort - からだの天気図</title>
+  <meta name="description" content="{{ og_description }}">
+  <!-- OGP / SNS 共有 -->
+  <meta property="og:site_name" content="{{ og_site_name }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ base_url }}/lp">
+  <meta property="og:title" content="{{ og_title }}">
+  <meta property="og:description" content="{{ og_description }}">
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="{{ og_locale }}">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ og_title }}">
+  <meta name="twitter:description" content="{{ og_description }}">
+  <meta name="twitter:image" content="{{ og_image }}">
+  <!-- PWA -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#4a90d9">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SymptoPort">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon.svg">
+  <script src="/static/pwa.js"></script>
+  <style>
+    :root {
+      --primary: #4a90d9;
+      --primary-dark: #2d6fb0;
+      --accent: #7b5ea7;
+      --accent-light: #f0ebf8;
+      --bg: #f5f7fa;
+      --white: #ffffff;
+      --text: #2c3e50;
+      --muted: #7f8c8d;
+      --border: #dde3ea;
+      --radius: 14px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    a { color: var(--primary); text-decoration: none; }
+
+    /* ---- HERO ---- */
+    .hero {
+      background: linear-gradient(135deg, #2d6fb0 0%, #7b5ea7 100%);
+      color: white;
+      padding: 80px 24px 100px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .hero-inner { position: relative; max-width: 700px; margin: 0 auto; }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 100px;
+      padding: 6px 18px;
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      line-height: 1.3;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(90deg, #a8e6cf, #dcedc1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 520px;
+      margin: 0 auto 36px;
+    }
+
+    .hero-cta {
+      display: inline-block;
+      background: white;
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 16px 40px;
+      border-radius: 100px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+
+    /* ---- WAVE ---- */
+    .wave {
+      display: block;
+      margin-top: -2px;
+      background: linear-gradient(135deg, #2d6fb0 0%, #7b5ea7 100%);
+    }
+
+    /* ---- SECTION ---- */
+    section { padding: 72px 24px; }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      font-size: clamp(1.4rem, 3.5vw, 2rem);
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin-bottom: 48px;
+    }
+
+    /* ---- TARGET DISEASES ---- */
+    .diseases {
+      background: var(--white);
+    }
+
+    .disease-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .disease-card {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .disease-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+
+    .disease-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    .disease-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .disease-card p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .disease-symptoms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .symptom-tag {
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 100px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* ---- PROBLEM ---- */
+    .problem { background: #fef9f0; }
+
+    .problem-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 0;
+    }
+
+    .problem-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .problem-item .icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .problem-item p {
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    /* ---- FEATURES ---- */
+    .features { background: var(--bg); }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .feature-card .feat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ---- SCORE DEMO ---- */
+    .demo { background: white; }
+
+    .score-demo {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 28px;
+      max-width: 560px;
+    }
+
+    .score-demo h4 {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .score-label {
+      width: 100px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .score-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .score-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+    }
+
+    .s-none { background: #95a5a6; }
+    .s-0    { background: #27ae60; }
+    .s-1    { background: #2ecc71; }
+    .s-2    { background: #f1c40f; color: #333; }
+    .s-3    { background: #e67e22; }
+    .s-4    { background: #e74c3c; }
+    .s-5    { background: #8e44ad; }
+
+    .score-btn.active { outline: 3px solid var(--text); outline-offset: 2px; }
+
+    /* ---- COMPARISON ---- */
+    .comparison { background: var(--bg); }
+
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      font-size: 0.9rem;
+    }
+
+    .compare-table th {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      padding: 14px 16px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .compare-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table tr:nth-child(even) td { background: #f8fafc; }
+
+    .check { color: #27ae60; font-weight: 700; font-size: 1.1rem; }
+    .cross { color: #e74c3c; font-weight: 700; font-size: 1.1rem; }
+    .half  { color: #e67e22; font-weight: 700; font-size: 1.1rem; }
+
+    .our-col { font-weight: 700; color: var(--primary-dark); }
+
+    /* ---- VOICE ---- */
+    .voices { background: white; }
+
+    .voice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .voice-card {
+      background: var(--bg);
+      border-radius: var(--radius);
+      padding: 24px;
+      position: relative;
+    }
+
+    .voice-card::before {
+      content: '\201C';
+      font-size: 4rem;
+      color: var(--primary);
+      opacity: 0.2;
+      position: absolute;
+      top: 8px;
+      left: 16px;
+      line-height: 1;
+      font-family: serif;
+    }
+
+    .voice-card p {
+      font-size: 0.92rem;
+      line-height: 1.7;
+      position: relative;
+      z-index: 1;
+    }
+
+    .voice-card .voice-meta {
+      margin-top: 14px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .disease-badge {
+      display: inline-block;
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 100px;
+      padding: 2px 10px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+
+    /* ---- PRIVACY ---- */
+    .privacy { background: var(--accent-light); }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .privacy-item {
+      text-align: center;
+      padding: 24px 16px;
+    }
+
+    .privacy-item .picon {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+    }
+
+    .privacy-item h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .privacy-item p {
+      font-size: 0.83rem;
+      color: var(--muted);
+    }
+
+    /* ---- CTA SECTION ---- */
+    .cta-section {
+      background: linear-gradient(135deg, #2d6fb0 0%, #7b5ea7 100%);
+      color: white;
+      text-align: center;
+      padding: 80px 24px;
+    }
+
+    .cta-section h2 {
+      color: white;
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      margin-bottom: 16px;
+    }
+
+    .cta-section p {
+      opacity: 0.9;
+      margin-bottom: 36px;
+      font-size: 1.05rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-btn {
+      display: inline-block;
+      background: white;
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 1.05rem;
+      padding: 16px 44px;
+      border-radius: 100px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .cta-btn:hover { transform: translateY(-2px); }
+    .cta-note { font-size: 0.83rem; opacity: 0.7; }
+
+    /* ---- FOOTER ---- */
+    footer {
+      background: var(--text);
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 0.84rem;
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 600px) {
+      .hero { padding: 60px 20px 80px; }
+      section { padding: 52px 20px; }
+      .score-buttons { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1>「なんとなく不調」を<br><span>見える化</span>して、<br>医師に伝える。</h1>
+    <p>めまい・倦怠感・痛みなど、波のある症状を毎日スコアで記録。通院時に「客観的なデータ」として活用できます。</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px;">
+      <a href="/register" class="hero-cta">無料で始める</a>
+      <button data-pwa-install onclick="triggerInstall()" class="hero-cta" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.6);">📲 ホーム画面に追加</button>
+    </div>
+    <a href="/login" style="font-size:0.88rem;color:rgba(255,255,255,0.7);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.4);">すでにアカウントをお持ちの方はログイン →</a>
+  </div>
+</section>
+<svg class="wave" viewBox="0 0 1440 60" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style="display:block;width:100%;height:60px;">
+  <path d="M0,40 C360,80 1080,0 1440,40 L1440,0 L0,0 Z" fill="url(#wg)"/>
+  <defs>
+    <linearGradient id="wg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2d6fb0"/>
+      <stop offset="100%" stop-color="#7b5ea7"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- TARGET DISEASES -->
+<section class="diseases">
+  <div class="container">
+    <div class="section-label">対象疾患</div>
+    <h2>こんな症状・疾患の方に</h2>
+    <p class="lead">これらの疾患に共通するのは「波のある不調」「言語化しにくさ」「診察時間の短さ」。記録が力になります。</p>
+    <div class="disease-grid">
+
+      <div class="disease-card">
+        <div class="disease-icon">🌀</div>
+        <h3>メニエール病</h3>
+        <p>回転性めまい・耳鳴り・難聴の発作。発作頻度・強度・前兆の把握が治療方針に直結します。</p>
+        <div class="disease-symptoms">
+          <span class="symptom-tag">めまい</span>
+          <span class="symptom-tag">耳鳴り</span>
+          <span class="symptom-tag">耳閉感</span>
+          <span class="symptom-tag">吐き気</span>
+        </div>
+      </div>
+
+      <div class="disease-card">
+        <div class="disease-icon">🔥</div>
+        <h3>線維筋痛症</h3>
+        <p>全身の慢性痛・疲労・睡眠障害が主症状。痛みの部位・強度・トリガーを記録し、フレアアップのパターンを掴みます。</p>
+        <div class="disease-symptoms">
+          <span class="symptom-tag">全身痛</span>
+          <span class="symptom-tag">疲労感</span>
+          <span class="symptom-tag">睡眠障害</span>
+          <span class="symptom-tag">ブレインフォグ</span>
+        </div>
+      </div>
+
+      <div class="disease-card">
+        <div class="disease-icon">🔋</div>
+        <h3>慢性疲労症候群<br>(ME/CFS)</h3>
+        <p>労作後倦怠感(PEM)が特徴。活動量と疲労の記録でペーシング管理をサポートします。</p>
+        <div class="disease-symptoms">
+          <span class="symptom-tag">強い倦怠感</span>
+          <span class="symptom-tag">PEM</span>
+          <span class="symptom-tag">認知障害</span>
+          <span class="symptom-tag">起立不耐性</span>
+        </div>
+      </div>
+
+      <div class="disease-card">
+        <div class="disease-icon">⚡</div>
+        <h3>自律神経失調症</h3>
+        <p>動悸・頭痛・ほてり・発汗など多彩な症状。時間帯別の記録で自律神経リズムの乱れを把握します。</p>
+        <div class="disease-symptoms">
+          <span class="symptom-tag">動悸</span>
+          <span class="symptom-tag">頭痛</span>
+          <span class="symptom-tag">ほてり</span>
+          <span class="symptom-tag">発汗</span>
+        </div>
+      </div>
+
+      <div class="disease-card">
+        <div class="disease-icon">💭</div>
+        <h3>身体症状症</h3>
+        <p>検査で異常が出にくいが確かに存在する身体の苦痛。日々の記録が「気のせいではない」証拠になります。</p>
+        <div class="disease-symptoms">
+          <span class="symptom-tag">身体的苦痛</span>
+          <span class="symptom-tag">不安</span>
+          <span class="symptom-tag">日常支障度</span>
+        </div>
+      </div>
+
+      <div class="disease-card">
+        <div class="disease-icon">🌩️</div>
+        <h3>その他の慢性症状</h3>
+        <p>ロングCOVID・POTSなど、既存アプリでは対応しきれなかった症状も、自由にカスタマイズして記録できます。</p>
+        <div class="disease-symptoms">
+          <span class="symptom-tag">ロングCOVID</span>
+          <span class="symptom-tag">POTS</span>
+          <span class="symptom-tag">カスタム症状</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="container">
+    <div class="section-label">解決する問題</div>
+    <h2>こんなこと、ありませんか？</h2>
+    <p class="lead" style="margin-bottom:32px;">体調に悩む方が日々感じている困りごとに、このアプリは向き合います。</p>
+    <div class="problem-list">
+      <div class="problem-item">
+        <span class="icon">😔</span>
+        <p>「調子が悪い」とは言えるのに、診察室でうまく伝えられない。症状を数値で持っていけたら……</p>
+      </div>
+      <div class="problem-item">
+        <span class="icon">📊</span>
+        <p>既存の健康管理アプリは血圧・体重中心で、めまいや倦怠感を記録する欄がない。</p>
+      </div>
+      <div class="problem-item">
+        <span class="icon">📅</span>
+        <p>症状に波があるので、「先週はどうだったか」が分からない。パターンを掴みたい。</p>
+      </div>
+      <div class="problem-item">
+        <span class="icon">💊</span>
+        <p>薬を変えた前後で体調がどう変わったか、客観的に比べる手段がない。</p>
+      </div>
+      <div class="problem-item">
+        <span class="icon">🌧️</span>
+        <p>「天気が悪いと調子が悪い気がする」が、本当かどうか確認できない。</p>
+      </div>
+      <div class="problem-item">
+        <span class="icon">🏥</span>
+        <p>専用のからだの天気図は海外製ばかりで、日本語で使いやすいものがない。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="container">
+    <div class="section-label">主な機能</div>
+    <h2>記録を「医師に伝わるデータ」へ</h2>
+    <p class="lead">シンプルで毎日続けやすく、いざというときに役立つ機能を揃えました。</p>
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="feat-icon">📝</div>
+        <h3>症状を自由にカスタマイズ</h3>
+        <p>記録したい症状を自分で追加・並び替え・削除。めまい・耳鳴り・倦怠感・ブレインフォグなど、あなたの症状に合わせて設定できます。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-icon">🕐</div>
+        <h3>時間帯別スコア記録</h3>
+        <p>朝・昼・夜・全体の4時間帯で症状強度を0〜5の6段階で入力。1日の中でも変動する症状の波を正確に捉えます。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-icon">📈</div>
+        <h3>グラフで変化を可視化</h3>
+        <p>週・月単位の推移グラフで、改善・悪化のトレンドを一目で把握。治療効果の確認や通院時の報告に活用できます。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-icon">💬</div>
+        <h3>日記メモで状況を補足</h3>
+        <p>数値だけでは伝わらない「今日は外出が多かった」「生理中」など、その日の背景をメモとして残せます。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-icon">🔄</div>
+        <h3>自動保存でデータを守る</h3>
+        <p>入力中に自動的に保存。うっかりページを閉じてもデータが消えません。記録の負担を最小限に。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-icon">🔒</div>
+        <h3>プライバシー重視の設計</h3>
+        <p>健康データは最もセンシティブな個人情報。暗号化パスワード管理・署名付きセッションで、あなたのデータを守ります。</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SCORE DEMO -->
+<section class="demo">
+  <div class="container">
+    <div class="section-label">使い方イメージ</div>
+    <h2>毎日30秒。習慣になる記録画面</h2>
+    <p class="lead">スコアボタンをタップするだけ。難しい操作は一切ありません。</p>
+    <div class="score-demo">
+      <h4>📅 2026年5月28日（木）の記録</h4>
+      <div class="score-row">
+        <span class="score-label">めまい</span>
+        <div class="score-buttons">
+          <button class="score-btn s-none">−</button>
+          <button class="score-btn s-0">0</button>
+          <button class="score-btn s-1">1</button>
+          <button class="score-btn s-2 active">2</button>
+          <button class="score-btn s-3">3</button>
+          <button class="score-btn s-4">4</button>
+          <button class="score-btn s-5">5</button>
+        </div>
+      </div>
+      <div class="score-row">
+        <span class="score-label">倦怠感</span>
+        <div class="score-buttons">
+          <button class="score-btn s-none">−</button>
+          <button class="score-btn s-0">0</button>
+          <button class="score-btn s-1">1</button>
+          <button class="score-btn s-2">2</button>
+          <button class="score-btn s-3 active">3</button>
+          <button class="score-btn s-4">4</button>
+          <button class="score-btn s-5">5</button>
+        </div>
+      </div>
+      <div class="score-row">
+        <span class="score-label">睡眠の質</span>
+        <div class="score-buttons">
+          <button class="score-btn s-none">−</button>
+          <button class="score-btn s-0">0</button>
+          <button class="score-btn s-1 active">1</button>
+          <button class="score-btn s-2">2</button>
+          <button class="score-btn s-3">3</button>
+          <button class="score-btn s-4">4</button>
+          <button class="score-btn s-5">5</button>
+        </div>
+      </div>
+      <div class="score-row">
+        <span class="score-label">耳鳴り</span>
+        <div class="score-buttons">
+          <button class="score-btn s-none active">−</button>
+          <button class="score-btn s-0">0</button>
+          <button class="score-btn s-1">1</button>
+          <button class="score-btn s-2">2</button>
+          <button class="score-btn s-3">3</button>
+          <button class="score-btn s-4">4</button>
+          <button class="score-btn s-5">5</button>
+        </div>
+      </div>
+      <p style="font-size:0.8rem; color:#7f8c8d; margin-top:16px;">0=なし ／ 1〜5=軽度〜最重度 ／ −=記録しない</p>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section class="comparison">
+  <div class="container">
+    <div class="section-label">他サービスとの比較</div>
+    <h2>既存アプリにはできなかったこと</h2>
+    <p class="lead">一般的な健康管理アプリとの決定的な違いをご確認ください。</p>
+    <div style="overflow-x:auto;">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>機能・特徴</th>
+            <th class="our-col">このアプリ</th>
+            <th>一般健康管理<br>アプリ</th>
+            <th>海外製慢性疾患<br>アプリ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>日本語対応</td>
+            <td class="our-col check">✓ 完全対応</td>
+            <td class="check">✓</td>
+            <td class="cross">✗ 英語のみ</td>
+          </tr>
+          <tr>
+            <td>症状のカスタマイズ</td>
+            <td class="our-col check">✓ 完全自由</td>
+            <td class="cross">✗ 固定項目のみ</td>
+            <td class="half">△ 限定的</td>
+          </tr>
+          <tr>
+            <td>時間帯別（朝昼夜）記録</td>
+            <td class="our-col check">✓</td>
+            <td class="cross">✗</td>
+            <td class="half">△ 一部対応</td>
+          </tr>
+          <tr>
+            <td>慢性疾患に特化した設計</td>
+            <td class="our-col check">✓</td>
+            <td class="cross">✗ 血圧・体重中心</td>
+            <td class="check">✓ 特定疾患のみ</td>
+          </tr>
+          <tr>
+            <td>複数疾患を1アプリで管理</td>
+            <td class="our-col check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗ 単一疾患専用</td>
+          </tr>
+          <tr>
+            <td>逆スコア設定<br>（良いことを高得点で記録）</td>
+            <td class="our-col check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>自動保存</td>
+            <td class="our-col check">✓</td>
+            <td class="half">△</td>
+            <td class="half">△</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="privacy">
+  <div class="container">
+    <div class="section-label">プライバシーとセキュリティ</div>
+    <h2>健康データを、安全に</h2>
+    <p class="lead">あなたの健康データは最もセンシティブな個人情報です。徹底したセキュリティ設計で守ります。</p>
+    <div class="privacy-grid">
+      <div class="privacy-item">
+        <div class="picon">🔐</div>
+        <h3>暗号化パスワード</h3>
+        <p>PBKDF2(SHA-256)による強固なハッシュ化。パスワードは平文で保存されません。</p>
+      </div>
+      <div class="privacy-item">
+        <div class="picon">🛡️</div>
+        <h3>署名付きセッション</h3>
+        <p>改ざん検知付きのセッションCookieで、なりすましを防止。</p>
+      </div>
+      <div class="privacy-item">
+        <div class="picon">🤖</div>
+        <h3>ボット対策</h3>
+        <p>Cloudflare Turnstileにより、不正な登録・ログイン試行をブロック。</p>
+      </div>
+      <div class="privacy-item">
+        <div class="picon">👤</div>
+        <h3>自分だけのデータ</h3>
+        <p>他のユーザーのデータには一切アクセスできない設計。プライバシーを守ります。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <h2>今日から記録を始めよう</h2>
+  <p>毎日の積み重ねが、あなたと医師をつなぐ力になります。無料でアカウントを作成して、体調の「見える化」を始めましょう。</p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px;">
+    <a href="/register" class="cta-btn">無料アカウントを作成</a>
+    <button data-pwa-install onclick="triggerInstall()" class="cta-btn" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.6);">📲 ホーム画面に追加</button>
+  </div>
+  <span class="cta-note">クレジットカード不要 · 登録60秒 · いつでも退会可能</span>
+</section>
+
+<footer>
+  <p>&copy; 2026 SymptoPort. All rights reserved.</p>
+  <p style="margin-top:8px;">
+    <a href="/privacy" style="color:rgba(255,255,255,0.5);">プライバシーポリシー</a>
+    &nbsp;·&nbsp;
+    <a href="/terms" style="color:rgba(255,255,255,0.5);">利用規約</a>
+    &nbsp;·&nbsp;
+    <a href="/contact" style="color:rgba(255,255,255,0.5);">お問い合わせ</a>
+  </p>
+  <p style="margin-top:16px; font-size:0.78rem; opacity:0.5;">
+    ※ このアプリは医療機器ではありません。診断・治療の代替ではなく、症状管理の補助ツールとしてご活用ください。
+  </p>
+</footer>
+
+</body>
+</html>

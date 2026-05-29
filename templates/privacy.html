@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー — SymptoPort</title>
+  <link rel="stylesheet" href="{{ static_v('style.css') }}">
+  {% include '_pwa_head.html' %}
+  <style>
+    .policy-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
+    .policy-wrap h1 {
+      font-size: 1.6rem;
+      margin-bottom: 6px;
+    }
+    .policy-wrap .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 36px;
+    }
+    .policy-section {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .policy-section h2 {
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+      color: var(--primary-dark);
+      border-left: 4px solid var(--primary);
+      padding-left: 10px;
+    }
+    .policy-section p,
+    .policy-section li {
+      font-size: 0.92rem;
+      color: var(--text);
+      line-height: 1.75;
+    }
+    .policy-section ul {
+      padding-left: 1.4em;
+      margin-top: 6px;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      font-size: 0.9rem;
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+<div class="policy-wrap">
+  <h1>プライバシーポリシー</h1>
+  <p class="subtitle">最終更新日：2026年5月29日</p>
+
+  <div class="policy-section">
+    <h2>1. 収集する情報</h2>
+    <p>本サービスでは、以下の情報を収集します。</p>
+    <ul>
+      <li>アカウント情報：ユーザー名・パスワード（ハッシュ化して保存）</li>
+      <li>SymptoPortデータ：症状名・スコア・記録日時・メモ</li>
+      <li>ログ情報：アクセス日時・ブラウザ情報（障害対応目的）</li>
+    </ul>
+  </div>
+
+  <div class="policy-section">
+    <h2>2. 情報の利用目的</h2>
+    <ul>
+      <li>SymptoPort機能の提供・表示</li>
+      <li>ユーザー認証・セッション管理</li>
+      <li>サービスの改善・障害対応</li>
+    </ul>
+    <p style="margin-top:10px;">収集した個人情報を第三者に販売・提供することはありません。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>3. 健康データの取り扱い</h2>
+    <p>SymptoPortは要配慮個人情報に該当する場合があります。本サービスでは以下の対策を講じます。</p>
+    <ul>
+      <li>パスワードは PBKDF2（SHA-256）でハッシュ化して保存</li>
+      <li>セッションは署名付き Cookie で管理し、改ざんを検知</li>
+      <li>他のユーザーの記録データへのアクセスは技術的に不可能な設計</li>
+    </ul>
+  </div>
+
+  <div class="policy-section">
+    <h2>4. Cloudflare Turnstile の利用</h2>
+    <p>ログイン・新規登録画面において、ボット対策として Cloudflare Turnstile を使用しています。Turnstile の利用により、Cloudflare 社のプライバシーポリシーが適用される場合があります。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>5. データの保存期間・削除</h2>
+    <p>記録データはアカウントが存在する限り保持されます。アカウント削除を希望される場合は、お問い合わせよりご連絡ください。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>6. Cookie の使用</h2>
+    <p>ログイン状態の維持のためにセッション Cookie を使用します。ブラウザの設定で Cookie を無効にすると、ログイン機能が利用できなくなります。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>7. 免責事項</h2>
+    <p>本サービスは医療機器ではありません。記録された情報は医師の診断・治療の補助情報としてご活用ください。本サービスの利用により生じた損害について、運営者は責任を負いません。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>8. ポリシーの変更</h2>
+    <p>本ポリシーは予告なく変更することがあります。重要な変更がある場合はサービス内でお知らせします。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>9. お問い合わせ</h2>
+    <p>プライバシーに関するご質問は <a href="/contact">お問い合わせフォーム</a> よりご連絡ください。</p>
+  </div>
+
+  <a href="/" class="back-link">← トップに戻る</a>
+</div>
+</body>
+</html>

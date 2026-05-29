@@ -148,11 +148,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (msgTimeout) clearTimeout(msgTimeout);
-    
+
     if (!isPending && !isError) {
-      msgTimeout = setTimeout(() => { 
-        saveMsg.hidden = true; 
+      msgTimeout = setTimeout(() => {
+        saveMsg.hidden = true;
       }, 2500);
     }
   }
 });
+
+// Service Worker 登録・PWA インストールは pwa.js で一元管理

@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>体調記録 — ログイン</title>
+  <title>SymptoPort — ログイン</title>
   <link rel="stylesheet" href="{{ static_v('style.css') }}">
+  {% include '_pwa_head.html' %}
   <!-- Cloudflare Turnstile Script -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="login-page">
   <div class="login-card">
-    <h1>体調記録</h1>
+    <h1>SymptoPort</h1>
     {% if error %}
       <p class="error-msg">{{ error }}</p>
     {% endif %}

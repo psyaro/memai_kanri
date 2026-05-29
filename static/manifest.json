@@ -1,0 +1,86 @@
+{
+  "name": "SymptoPort — からだの天気図",
+  "short_name": "SymptoPort",
+  "description": "めまい・倦怠感・痛みなど、波のある症状を毎日スコアで記録。通院時に客観的なデータとして活用できます。",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f7fa",
+  "theme_color": "#4a90d9",
+  "lang": "ja",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/static/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["health", "medical", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "今日の記録",
+      "short_name": "記録",
+      "description": "今日の体調を記録する",
+      "url": "/",
+      "icons": [{ "src": "/static/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "設定",
+      "short_name": "設定",
+      "description": "症状の管理・設定",
+      "url": "/settings",
+      "icons": [{ "src": "/static/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}

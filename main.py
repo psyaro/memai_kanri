@@ -37,6 +37,34 @@ def static_v(filename: str) -> str:
 
 templates.env.globals["static_v"] = static_v
 
+# ---- OGP / SNS 共有設定 ----
+# 本番環境では APP_BASE_URL=https://yourdomain.com を設定すること
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "").rstrip("/")
+
+_OGP_DEFAULTS = {
+    "og_site_name":    "SymptoPort",
+    "og_title":        "SymptoPort — からだの天気図",
+    "og_description":  "めまい・倦怠感・痛みなど、波のある症状を毎日スコアで記録。通院時に客観的なデータとして活用できます。",
+    "og_image":        f"{APP_BASE_URL}/static/og-image.png",
+    "og_image_app":    f"{APP_BASE_URL}/static/og-image-app.png",
+    "og_locale":       "ja_JP",
+    "base_url":        APP_BASE_URL,
+}
+
+templates.env.globals.update(_OGP_DEFAULTS)
+
+
+def _to_weekday(date_str: str) -> int:
+    """ISO日付文字列から曜日番号(0=月〜6=日)を返す Jinja2 フィルター"""
+    from datetime import date as date_type
+    try:
+        return date_type.fromisoformat(date_str).weekday()
+    except ValueError:
+        return 0
+
+
+templates.env.filters["to_weekday"] = _to_weekday
+
 
 def get_turnstile_site_key() -> str:
     """開発環境であれば、未設定・プレースホルダーの場合にテスト用ダミーキーを返す"""
@@ -56,6 +84,109 @@ def get_turnstile_site_key() -> str:
 
 
 database.init_db()
+
+
+@app.get("/lp", response_class=HTMLResponse)
+async def lp_page(request: Request):
+    """ランディングページ（OGP タグを動的に埋め込む）"""
+    return templates.TemplateResponse("lp.html", {"request": request})
+
+
+@app.get("/sw.js")
+async def service_worker():
+    """Service Worker をルートスコープ（/）で配信する"""
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        "static/sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/"},
+    )
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(request: Request):
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_page(request: Request):
+    return templates.TemplateResponse("terms.html", {"request": request})
+
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact_page(request: Request):
+    return templates.TemplateResponse("contact.html", {"request": request})
+
+
+@app.get("/print", response_class=HTMLResponse)
+async def print_page(
+    request: Request,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    user_id: int = Depends(auth.get_current_user_id),
+):
+    from datetime import date as date_type, timedelta
+
+    today = date_type.today()
+    today_str = today.isoformat()
+
+    # デフォルト: 直近30日
+    if not to_date:
+        to_date = today_str
+    if not from_date:
+        from_date = (today - timedelta(days=29)).isoformat()
+
+    # バリデーション
+    try:
+        from_dt = date_type.fromisoformat(from_date)
+        to_dt = date_type.fromisoformat(to_date)
+    except ValueError:
+        from_dt = today - timedelta(days=29)
+        to_dt = today
+        from_date, to_date = from_dt.isoformat(), to_dt.isoformat()
+
+    # 範囲を最大90日に制限
+    if (to_dt - from_dt).days > 89:
+        from_dt = to_dt - timedelta(days=89)
+        from_date = from_dt.isoformat()
+
+    if from_dt > to_dt:
+        from_dt, to_dt = to_dt, from_dt
+        from_date, to_date = to_date, from_date
+
+    # データ取得
+    symptoms = database.get_active_symptoms(user_id)
+    records_by_date = database.get_records_for_range(user_id, from_date, to_date)
+    notes_by_date = database.get_notes_for_range(user_id, from_date, to_date)
+
+    # 記録がある日付 + 範囲内の全日付を列挙（記録がない日も表示）
+    dates = []
+    cur = from_dt
+    while cur <= to_dt:
+        dates.append(cur.isoformat())
+        cur += timedelta(days=1)
+    # 記録が1件もない日は省く（すっきり表示のため）
+    dates = [d for d in dates if d in records_by_date or d in notes_by_date]
+
+    user = database.get_user_by_username_by_id(user_id)
+    username = user["username"] if user else ""
+
+    return templates.TemplateResponse(
+        "print.html",
+        {
+            "request": request,
+            "username": username,
+            "from_date": from_date,
+            "to_date": to_date,
+            "today": today_str,
+            "symptoms": symptoms,
+            "dates": dates,
+            "records_by_date": records_by_date,
+            "notes_by_date": notes_by_date,
+            "timepoints": TIMEPOINTS,
+            "timepoint_labels": TIMEPOINT_LABELS,
+        },
+    )
 
 
 @app.get("/help", response_class=HTMLResponse)
@@ -254,10 +385,14 @@ async def register(
 async def record_page(
     request: Request,
     date: Optional[str] = None,
-    user_id: int = Depends(auth.get_current_user_id),
 ):
     from datetime import date as date_type
-    
+
+    # 未ログインユーザーはLPへ
+    user_id = request.session.get("user_id")
+    if user_id is None:
+        return RedirectResponse(url="/lp", status_code=302)
+
     # date パラメータのバリデーション
     if date:
         try:

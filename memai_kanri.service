@@ -1,5 +1,5 @@
 [Unit]
-Description=体調記録アプリ
+Description=からだの天気図
 After=network.target
 
 [Service]

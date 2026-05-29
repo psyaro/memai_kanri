@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SymptoPort 印刷レポート</title>
+  {% include '_pwa_head.html' %}
+  <style>
+    :root {
+      --primary: #4a90d9;
+      --primary-dark: #2d6fb0;
+      --bg: #f5f7fa;
+      --card-bg: #ffffff;
+      --text: #2c3e50;
+      --muted: #7f8c8d;
+      --border: #dde3ea;
+      --radius: 10px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ---- 画面用 UI ---- */
+    .screen-only { }
+
+    .page-header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .page-header h1 { font-size: 1rem; font-weight: 700; flex-shrink: 0; }
+
+    .range-form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .range-form label { font-size: 0.82rem; color: var(--muted); }
+
+    .range-form input[type="date"] {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .range-form button, .btn-print {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: inherit;
+      font-weight: 600;
+    }
+
+    .range-form button { background: var(--primary); color: white; }
+    .range-form button:hover { background: var(--primary-dark); }
+
+    .btn-print {
+      background: #27ae60;
+      color: white;
+      margin-left: auto;
+    }
+    .btn-print:hover { background: #219a52; }
+
+    .back-link {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ---- レポート本体 ---- */
+    .report-wrap {
+      max-width: 860px;
+      margin: 24px auto;
+      padding: 0 20px 60px;
+    }
+
+    .report-title {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .report-title h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .report-title p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--muted);
+      padding: 48px 20px;
+      font-size: 0.95rem;
+    }
+
+    /* ---- 日付カード ---- */
+    .day-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .day-header {
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .day-dow {
+      background: rgba(255,255,255,0.25);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.78rem;
+    }
+
+    /* ---- 症状テーブル ---- */
+    .symptom-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .symptom-table th {
+      background: #f0f4f8;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .symptom-table th.symptom-col { text-align: left; }
+
+    .symptom-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #f0f4f8;
+      vertical-align: middle;
+    }
+
+    .symptom-table tr:last-child td { border-bottom: none; }
+    .symptom-table td.symptom-name { font-size: 0.88rem; font-weight: 600; }
+
+    .score-cell { text-align: center; }
+
+    .score-badge {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      line-height: 28px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-align: center;
+      color: white;
+    }
+
+    .score-none { background: #bdc3c7; color: #555; }
+    .score-0    { background: #27ae60; }
+    .score-1    { background: #2ecc71; }
+    .score-2    { background: #f1c40f; color: #333; }
+    .score-3    { background: #e67e22; }
+    .score-4    { background: #e74c3c; }
+    .score-5    { background: #8e44ad; }
+    .score-empty { color: var(--border); font-size: 0.9rem; }
+
+    .day-note {
+      padding: 8px 14px;
+      background: #fffbf0;
+      border-top: 1px solid #f0ecd8;
+      font-size: 0.83rem;
+      color: #5d4e20;
+      white-space: pre-wrap;
+    }
+
+    .day-note::before {
+      content: '📝 ';
+    }
+
+    /* ---- 凡例 ---- */
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+
+    .legend-title { color: var(--muted); margin-right: 4px; }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ---- 印刷スタイル ---- */
+    @media print {
+      @page {
+        margin: 15mm 12mm;
+        size: A4 portrait;
+      }
+
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+
+      .screen-only { display: none !important; }
+
+      body { background: white; font-size: 11pt; }
+
+      .report-wrap { margin: 0; padding: 0; max-width: 100%; }
+
+      .day-card {
+        box-shadow: none;
+        border: 1px solid #ccc;
+        margin-bottom: 12px;
+      }
+
+      .legend {
+        border: 1px solid #ccc;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 画面用ヘッダー -->
+<div class="screen-only">
+  <div class="page-header">
+    <a href="/" class="back-link">← 記録に戻る</a>
+    <h1>🖨️ 印刷レポート</h1>
+    <form class="range-form" method="get" action="/print">
+      <label>開始</label>
+      <input type="date" name="from" value="{{ from_date }}" max="{{ today }}">
+      <label>終了</label>
+      <input type="date" name="to" value="{{ to_date }}" max="{{ today }}">
+      <button type="submit">表示</button>
+    </form>
+    <button class="btn-print" onclick="window.print()">🖨️ 印刷する</button>
+  </div>
+</div>
+
+<!-- レポート本体 -->
+<div class="report-wrap">
+
+  <!-- タイトル（印刷時に表示） -->
+  <div class="report-title">
+    <h2>SymptoPortレポート</h2>
+    <p>{{ username }} ／ {{ from_date }} 〜 {{ to_date }}</p>
+  </div>
+
+  {% if not dates %}
+  <div class="empty-msg">
+    <p>指定した期間に記録がありません。</p>
+  </div>
+  {% else %}
+
+  <!-- 凡例 -->
+  <div class="legend">
+    <span class="legend-title">スコア凡例：</span>
+    <span class="legend-item"><span class="score-badge score-none">—</span> 未記録</span>
+    <span class="legend-item"><span class="score-badge score-0">0</span> なし</span>
+    <span class="legend-item"><span class="score-badge score-1">1</span> 軽度</span>
+    <span class="legend-item"><span class="score-badge score-2">2</span> やや強</span>
+    <span class="legend-item"><span class="score-badge score-3">3</span> 中程度</span>
+    <span class="legend-item"><span class="score-badge score-4">4</span> 強い</span>
+    <span class="legend-item"><span class="score-badge score-5">5</span> 最重度</span>
+    <span style="color:var(--muted);font-size:0.78rem;margin-left:8px;">※ 逆スコア症状は高スコアが良好を意味します</span>
+  </div>
+
+  {% set dow_ja = ["月","火","水","木","金","土","日"] %}
+
+  {% for date in dates %}
+  {% set rec = records_by_date.get(date, {}) %}
+  {% set note_text = notes_by_date.get(date, '') %}
+
+  <div class="day-card">
+    <div class="day-header">
+      {{ date }}
+      <span class="day-dow">{{ dow_ja[date | to_weekday] }}</span>
+    </div>
+
+    <table class="symptom-table">
+      <thead>
+        <tr>
+          <th class="symptom-col">症状</th>
+          {% for s in symptoms %}
+            {% if s.use_timepoints %}
+              {% for tp in timepoints if tp != 'overall' %}
+              <th>{{ timepoint_labels[tp] }}</th>
+              {% endfor %}
+            {% else %}
+              <th>全体</th>
+            {% endif %}
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in symptoms %}
+        <tr>
+          <td class="symptom-name">
+            {{ s.label }}{% if s.is_reverse %} <span style="color:var(--primary);font-size:0.72rem;">↑良</span>{% endif %}
+          </td>
+          {% if s.use_timepoints %}
+            {% for tp in timepoints if tp != 'overall' %}
+            {% set key = s.name ~ '_' ~ tp %}
+            {% set score = rec.get(key) %}
+            <td class="score-cell">
+              {% if score is none %}
+                <span class="score-empty">·</span>
+              {% elif score == -1 %}
+                <span class="score-badge score-none">—</span>
+              {% else %}
+                <span class="score-badge score-{{ score }}">{{ score }}</span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          {% else %}
+            {% set key = s.name ~ '_overall' %}
+            {% set score = rec.get(key) %}
+            <td class="score-cell">
+              {% if score is none %}
+                <span class="score-empty">·</span>
+              {% elif score == -1 %}
+                <span class="score-badge score-none">—</span>
+              {% else %}
+                <span class="score-badge score-{{ score }}">{{ score }}</span>
+              {% endif %}
+            </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if note_text %}
+    <div class="day-note">{{ note_text }}</div>
+    {% endif %}
+  </div>
+
+  {% endfor %}
+  {% endif %}
+
+</div>
+
+</body>
+</html>

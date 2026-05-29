@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>体調記録</title>
+  <title>SymptoPort</title>
   <link rel="stylesheet" href="{{ static_v('style.css') }}">
+  {% include '_pwa_head.html' %}
 </head>
 <body>
   <header>
-    <h1>体調記録</h1>
+    <h1>SymptoPort</h1>
     <nav class="header-nav">
+      <a href="/print">印刷</a>
       <a href="/help">使い方</a>
       <a href="/settings">設定</a>
+      <button data-pwa-install onclick="triggerInstall()" class="install-nav-btn" style="display:none">📲 インストール</button>
       <a href="/logout">ログアウト</a>
     </nav>
   </header>

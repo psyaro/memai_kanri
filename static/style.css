@@ -125,6 +125,19 @@ header h1 { font-size: 1.1rem; }
 
 .header-nav a:hover { color: var(--text); }
 
+.install-nav-btn {
+  font-size: 0.85rem;
+  color: var(--primary);
+  background: none;
+  border: 1px solid var(--primary);
+  border-radius: 100px;
+  padding: 3px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s;
+}
+.install-nav-btn:hover { background: var(--primary); color: white; }
+
 /* ---- Main ---- */
 main {
   padding: 16px;

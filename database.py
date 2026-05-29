@@ -128,6 +128,13 @@ def get_user_by_username(username: str):
         ).fetchone()
 
 
+def get_user_by_username_by_id(user_id: int):
+    with get_conn() as conn:
+        return conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+
+
 def create_user(username: str, password_hash: str, selected_symptoms: list[str] = None):
     # 初期状態で睡眠、メンタル、疲労感だけを有効にする
     if selected_symptoms is None:
@@ -256,3 +263,34 @@ def get_note(user_id: int, date: str) -> str:
             (user_id, date),
         ).fetchone()
     return row["body"] if row else ""
+
+
+# ---- range queries (印刷用) ----
+
+def get_records_for_range(user_id: int, start_date: str, end_date: str) -> dict:
+    """指定日付範囲のレコードを {date: {symptom_timepoint: score}} で返す"""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT date, symptom, timepoint, score FROM records
+               WHERE user_id=? AND date>=? AND date<=?
+               ORDER BY date""",
+            (user_id, start_date, end_date),
+        ).fetchall()
+    result: dict = {}
+    for r in rows:
+        d = r["date"]
+        if d not in result:
+            result[d] = {}
+        result[d][f"{r['symptom']}_{r['timepoint']}"] = r["score"]
+    return result
+
+
+def get_notes_for_range(user_id: int, start_date: str, end_date: str) -> dict:
+    """指定日付範囲のノートを {date: body} で返す"""
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT date, body FROM notes
+               WHERE user_id=? AND date>=? AND date<=?""",
+            (user_id, start_date, end_date),
+        ).fetchall()
+    return {r["date"]: r["body"] for r in rows}
