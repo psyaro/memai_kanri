@@ -195,7 +195,7 @@ main {
 
 .timepoint-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -210,14 +210,15 @@ main {
 
 .score-buttons {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  justify-content: space-between;
   gap: 4px;
 }
 
 .score-btn {
   padding: 8px 0;
   width: calc((100% - 24px) / 7);
-  min-width: 36px;
+  min-width: auto;
   border: 2px solid var(--border);
   border-radius: 6px;
   background: var(--card-bg);
@@ -477,3 +478,402 @@ main {
 .save-msg[hidden] {
   display: none !important;
 }
+
+/* ---- WBGT Section (ベータ版) ---- */
+.wbgt-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.wbgt-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary), #a29bfe);
+}
+
+.wbgt-section h2 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.beta-badge {
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: white;
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wbgt-desc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.wbgt-fetch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.wbgt-fetch-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #0984e3, #74b9ff);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(9, 132, 227, 0.2);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.wbgt-fetch-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px rgba(9, 132, 227, 0.3);
+}
+
+.wbgt-fetch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.wbgt-status-msg {
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.status-fetching { color: var(--muted); }
+.status-success { color: #1e8449; font-weight: bold; }
+.status-error { color: #c0392b; font-weight: bold; }
+
+.wbgt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 480px) {
+  .wbgt-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.wbgt-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wbgt-input-group label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.wbgt-input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.wbgt-input:focus {
+  border-color: var(--primary);
+  background: var(--card-bg);
+  box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.15);
+}
+
+.wbgt-result-box {
+  background: #f8fafd;
+  border: 1px solid #eef3f9;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.wbgt-result-label {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.wbgt-result-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text);
+  font-family: inherit;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.wbgt-unit {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.wbgt-level-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.level-safe { background-color: #e3f2fd; color: #1565c0; }
+.level-caution { background-color: #fff9c4; color: #f57f17; }
+.level-warning { background-color: #ffe0b2; color: #e65100; }
+.level-severe { background-color: #ffcdd2; color: #c62828; }
+.level-danger { background-color: #f3e5f5; color: #6a1b9a; }
+
+.wbgt-status-badge {
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  margin-left: 6px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.status-forecast-badge {
+  background-color: #fff9db;
+  border: 1px solid #f59f00;
+  color: #f59f00;
+}
+
+.status-actual-badge {
+  background-color: #ebfbee;
+  border: 1px solid #40c057;
+  color: #40c057;
+}
+
+.wbgt-refresh-btn {
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wbgt-refresh-btn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--muted);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.wbgt-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 印刷レポート画面用一括取得ボタンのスタイリング */
+.btn-batch-action {
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+  transition: all 0.2s ease !important;
+}
+
+.btn-batch-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3) !important;
+  background: linear-gradient(135deg, #2980b9, #2471a3) !important;
+}
+
+.btn-batch-action:disabled, .btn-batch-action-alt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-batch-action-alt {
+  transition: all 0.2s ease !important;
+}
+
+.btn-batch-action-alt:hover:not(:disabled) {
+  background-color: #fdf2f2 !important;
+  border-color: #e74c3c !important;
+  transform: translateY(-1px);
+}
+
+/* ---- Medication (服薬記録) ---- */
+.medication-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.medication-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #2ecc71, #27ae60);
+}
+
+.medication-section h2 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.medication-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.med-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.med-row:last-child {
+  border-bottom: none;
+}
+
+.med-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.med-toggle-btn {
+  padding: 8px 16px;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-bg);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.med-toggle-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.med-toggle-btn.taken {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  border-color: #27ae60;
+  color: white;
+  box-shadow: 0 2px 6px rgba(46, 204, 113, 0.2);
+}
+
+.med-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+/* ---- Settings Card Extensions ---- */
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--card-bg);
+  width: 100%;
+  max-width: 300px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.settings-select:focus {
+  border-color: var(--primary);
+}
+
+.settings-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.settings-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+
+
+

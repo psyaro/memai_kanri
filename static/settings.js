@@ -49,4 +49,55 @@ document.addEventListener("DOMContentLoaded", () => {
       body: JSON.stringify({ ids }),
     });
   }
+
+  // バックアップ復元（リストア）処理
+  const btnRestore = document.getElementById("btn-restore");
+  const restoreFileInput = document.getElementById("restore-file-input");
+  const restoreStatus = document.getElementById("restore-status");
+
+  if (btnRestore && restoreFileInput) {
+    btnRestore.addEventListener("click", async () => {
+      const file = restoreFileInput.files[0];
+      if (!file) {
+        alert("復元するバックアップファイル（.json）を選択してください。");
+        return;
+      }
+
+      if (!confirm("⚠️ 本当に復元を実行しますか？\n現在アプリに記録されているすべてのデータが一度完全に消去され、選択したファイルの内容で上書きされます。")) {
+        return;
+      }
+
+      restoreStatus.textContent = "⚡ 復元処理中...";
+      restoreStatus.hidden = false;
+      restoreStatus.style.color = "#e67e22";
+      btnRestore.disabled = true;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/api/restore", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          restoreStatus.textContent = "✓ 復元が正常に完了しました！自動リロードします...";
+          restoreStatus.style.color = "#27ae60";
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          const errData = await res.json();
+          restoreStatus.textContent = `✗ 復元に失敗しました: ${errData.error || "不正なファイルです"}`;
+          restoreStatus.style.color = "#e74c3c";
+          btnRestore.disabled = false;
+        }
+      } catch (err) {
+        restoreStatus.textContent = "✗ 通信エラーが発生しました。";
+        restoreStatus.style.color = "#e74c3c";
+        btnRestore.disabled = false;
+      }
+    });
+  }
 });

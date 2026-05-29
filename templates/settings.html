@@ -82,6 +82,77 @@
         <button type="submit" class="btn-add">追加</button>
       </form>
     </section>
+
+    <section class="settings-section">
+      <h2>居住地設定 <span class="beta-badge">気象データ</span></h2>
+      <p class="settings-hint">暑さ指数（WBGT）を算出する気象データを取得する地域を選択します。</p>
+      <form method="post" action="/settings/location" class="add-form">
+        <select name="location" class="settings-select">
+          {% for key, val in cities.items() %}
+          <option value="{{ key }}" {% if key == current_location %}selected{% endif %}>{{ val.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn-add" style="max-width: 150px; margin-top: 8px;">地域を変更</button>
+      </form>
+    </section>
+
+    <section class="settings-section">
+      <h2>服薬チェック設定 💊</h2>
+      <p class="settings-hint">チェックを入れた時間帯の「服薬記録」項目を記録画面に表示します（すべて外すと非表示）。</p>
+      <form method="post" action="/settings/medication" class="add-form">
+        <div class="settings-checkbox-group">
+          <label class="settings-checkbox-label">
+            <input type="checkbox" name="timepoints" value="morning" {% if "morning" in medication_list %}checked{% endif %}>
+            朝の薬 💊
+          </label>
+          <label class="settings-checkbox-label">
+            <input type="checkbox" name="timepoints" value="afternoon" {% if "afternoon" in medication_list %}checked{% endif %}>
+            昼の薬 💊
+          </label>
+          <label class="settings-checkbox-label">
+            <input type="checkbox" name="timepoints" value="evening" {% if "evening" in medication_list %}checked{% endif %}>
+            夜の薬 💊
+          </label>
+          <label class="settings-checkbox-label">
+            <input type="checkbox" name="timepoints" value="before_sleep" {% if "before_sleep" in medication_list %}checked{% endif %}>
+            寝る前の薬 💊
+          </label>
+          <label class="settings-checkbox-label">
+            <input type="checkbox" name="timepoints" value="overall" {% if "overall" in medication_list %}checked{% endif %}>
+            全体の薬（1日のまとめ） 💊
+          </label>
+        </div>
+        <button type="submit" class="btn-add" style="max-width: 180px;">服薬設定を保存</button>
+      </form>
+    </section>
+
+    <section class="settings-section" style="border-left: 5px solid #7f8c8d;">
+      <h2>データのバックアップ・復元 💾</h2>
+      <p class="settings-hint">データの移行や万が一に備えて、記録データを保存・復元できます。</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- バックアップエクスポート -->
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: bold; margin-bottom: 4px;">📥 バックアップの作成 (エクスポート)</h3>
+          <p class="settings-hint" style="margin-bottom: 8px;">これまでのすべての症状スコア、メモ、WBGT記録、症状設定が1つのファイル（.json）として保存されます。</p>
+          <a href="/api/backup" class="btn-add" style="display: inline-block; text-align: center; text-decoration: none; max-width: 200px; padding: 10px 16px; font-size: 0.88rem;">データを保存する</a>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 8px 0;">
+        
+        <!-- リストアインポート -->
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: bold; margin-bottom: 4px;">📤 データの復元 (リストア)</h3>
+          <p class="settings-hint" style="margin-bottom: 8px; color: #c0392b; font-weight: bold;">⚠️ 復元を実行すると、現在のアプリ内のすべての記録が一度消去され、バックアップデータの内容で完全に上書きされます。</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="file" id="restore-file-input" accept=".json" style="font-size: 0.88rem; padding: 6px 0;">
+            <button type="button" id="btn-restore" class="btn-add" style="background-color: #e67e22; max-width: 200px; padding: 10px 16px; font-size: 0.88rem; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">データを復元する</button>
+            <div id="restore-status" style="font-size: 0.85rem; font-weight: bold; color: #e67e22; margin-top: 4px;" hidden></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script src="{{ static_v('settings.js') }}"></script>

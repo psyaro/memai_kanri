@@ -49,6 +49,84 @@
       </section>
       {% endfor %}
 
+      <section class="wbgt-section">
+        <h2>{{ location_name }} の暑さ指数(WBGT)記録 <span class="beta-badge">ベータ</span></h2>
+        <div class="wbgt-desc">
+          {{ location_name }}の10:00〜14:00の間の【最大気温】【最大湿度】【最大全天日射量】、および同時間帯の【最小平均風速】をAPIから自動取得、あるいは手動入力してその日のWBGTを記録・管理できます。14:00より前は「予報値」、14:00以降は「実測値」を自動取得します。
+        </div>
+        <div class="wbgt-fetch-row">
+          <button type="button" id="btn-fetch-wbgt" class="wbgt-fetch-btn">⚡ {{ location_name }}の気象データを取得</button>
+          <button type="button" id="btn-clear-weather-cache" class="wbgt-refresh-btn" title="最新の気象情報を外部APIから強制的に再取得します">🔄 キャッシュクリア再取得</button>
+          <span id="wbgt-fetch-status" class="wbgt-status-msg" hidden></span>
+        </div>
+        <div class="wbgt-grid">
+          <div class="wbgt-input-group">
+            <label for="wbgt-ta">気温 Ta (10-14時最大 ℃)</label>
+            <input type="number" step="0.1" id="wbgt-ta" class="wbgt-input" placeholder="例: 25.4">
+          </div>
+          <div class="wbgt-input-group">
+            <label for="wbgt-rh">湿度 RH (10-14時最大 %)</label>
+            <input type="number" step="1" id="wbgt-rh" class="wbgt-input" placeholder="例: 60">
+          </div>
+          <div class="wbgt-input-group">
+            <label for="wbgt-sr">日射量 SR (10-14時最大 kW/m²)</label>
+            <input type="number" step="0.01" id="wbgt-sr" class="wbgt-input" placeholder="例: 0.85">
+          </div>
+          <div class="wbgt-input-group">
+            <label for="wbgt-ws">風速 WS (10-14時最小 m/s)</label>
+            <input type="number" step="0.1" id="wbgt-ws" class="wbgt-input" placeholder="例: 1.2">
+          </div>
+        </div>
+        <div class="wbgt-result-box">
+          <div class="wbgt-result-label">
+            算出された暑さ指数 (WBGT)
+            <span id="wbgt-status-badge" class="wbgt-status-badge"></span>
+          </div>
+          <div class="wbgt-result-value"><span id="wbgt-val">-</span> <span class="wbgt-unit">℃</span></div>
+          <div id="wbgt-level" class="wbgt-level-text"></div>
+        </div>
+
+        <!-- 一括同期リンク/ボタン -->
+        <div class="wbgt-batch-helper" style="margin-top: 14px; text-align: right; font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+          <span>💡 直近30日間の気象データを</span>
+          <button type="button" id="btn-batch-fetch-30d" class="wbgt-refresh-btn" style="padding: 4px 10px; font-size: 0.76rem; border-color: var(--primary); color: var(--primary);">📥 一括取得</button>
+          <button type="button" id="btn-batch-clear-fetch-30d" class="wbgt-refresh-btn" style="padding: 4px 10px; font-size: 0.76rem; border-color: #e74c3c; color: #e74c3c;" title="直近30日のキャッシュを強制消去してから最新気象を一括再取得します">🔄 キャッシュ消去一括再取得</button>
+        </div>
+
+        <!-- クレジット表記と免責事項 -->
+        <div class="wbgt-credit" style="margin-top: 10px; text-align: left; font-size: 0.72rem; color: var(--muted); line-height: 1.45;">
+          <div style="text-align: right; margin-bottom: 4px;">
+            気象データ提供: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" style="color: var(--muted); text-decoration: underline;">Open-Meteo</a>
+          </div>
+          <div style="background-color: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-top: 6px;">
+            ⚠️ <strong>ご利用上の注意:</strong> 本アプリで表示・算出される暑さ指数(WBGT)は、外部気象データを基に<a href="https://www.wbgt.env.go.jp/wbgt_detail.php" target="_blank" rel="noopener noreferrer" style="color: var(--muted); text-decoration: underline;">環境省の算出方法</a>に則り計算した<strong>簡易的な疑似値（参考値）</strong>であり、環境省が公式発表する値とは異なります。また、本アプリは体調自己管理用のツールであり、<strong>医療機器ではありません</strong>。
+          </div>
+        </div>
+      </section>
+
+      {% if medication_timepoints %}
+      <section class="medication-section">
+        <h2>服薬記録 💊</h2>
+        <div class="medication-grid">
+          {% for tp in medication_timepoints %}
+          <div class="med-row">
+            <span class="med-label">
+              {% if tp == "morning" %}朝の薬 💊
+              {% elif tp == "afternoon" %}昼の薬 💊
+              {% elif tp == "evening" %}夜の薬 💊
+              {% elif tp == "before_sleep" %}寝る前の薬 💊
+              {% elif tp == "overall" %}全体の薬 💊
+              {% endif %}
+            </span>
+            <button type="button" class="med-toggle-btn" data-timepoint="{{ tp }}">
+              未服用
+            </button>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
       <section class="notes-section">
         <h2>備考</h2>
         <textarea id="note-input" placeholder="自由記入（薬、イベント、体の変化など）">{{ note }}</textarea>
@@ -63,6 +141,7 @@
   <script>
     const EXISTING = {{ existing | safe }};
     const EXISTING_NOTE = {{ note | tojson }};
+    const EXISTING_WBGT = {{ existing_wbgt | safe }};
   </script>
   <script src="{{ static_v('app.js') }}"></script>
 </body>

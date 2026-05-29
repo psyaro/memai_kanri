@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SymptoPort 印刷レポート</title>
   {% include '_pwa_head.html' %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --primary: #4a90d9;
@@ -259,6 +260,31 @@
       .legend {
         border: 1px solid #ccc;
       }
+
+      .no-print-break {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .chart-container {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        margin-bottom: 15px !important;
+        background: #fff !important;
+      }
+    }
+
+    .beta-badge {
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      color: white;
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-block;
+      vertical-align: middle;
     }
   </style>
 </head>
@@ -266,16 +292,24 @@
 
 <!-- 画面用ヘッダー -->
 <div class="screen-only">
-  <div class="page-header">
+  <div class="page-header" style="flex-wrap: wrap; gap: 12px 16px;">
     <a href="/" class="back-link">← 記録に戻る</a>
-    <h1>🖨️ 印刷レポート</h1>
+    <h1 style="margin-right: 8px;">🖨️ 印刷レポート</h1>
     <form class="range-form" method="get" action="/print">
       <label>開始</label>
-      <input type="date" name="from" value="{{ from_date }}" max="{{ today }}">
+      <input type="date" id="print-from-date" name="from" value="{{ from_date }}" max="{{ today }}">
       <label>終了</label>
-      <input type="date" name="to" value="{{ to_date }}" max="{{ today }}">
+      <input type="date" id="print-to-date" name="to" value="{{ to_date }}" max="{{ today }}">
       <button type="submit">表示</button>
     </form>
+    
+    <!-- 一括取得バッチUI -->
+    <div class="batch-controls" style="display: flex; gap: 8px; align-items: center;">
+      <button type="button" id="btn-batch-fetch" class="btn-batch-action" style="background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 6px 12px; border-radius: 6px; border: none; font-size: 0.82rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2); transition: all 0.2s;" title="この期間の気象データを外部APIから一括取得してDBに保存します">📥 期間内一括取得</button>
+      <button type="button" id="btn-batch-clear-fetch" class="btn-batch-action-alt" style="background: transparent; border: 1px solid #e74c3c; color: #e74c3c; padding: 5px 12px; border-radius: 6px; font-size: 0.82rem; font-weight: bold; cursor: pointer; transition: all 0.2s;" title="キャッシュを強制消去してから最新気象を一括再取得します">🔄 キャッシュ消去一括再取得</button>
+      <span id="batch-status" style="font-size: 0.8rem; font-weight: bold; color: var(--muted); margin-left: 4px;" hidden></span>
+    </div>
+    
     <button class="btn-print" onclick="window.print()">🖨️ 印刷する</button>
   </div>
 </div>
@@ -285,9 +319,30 @@
 
   <!-- タイトル（印刷時に表示） -->
   <div class="report-title">
-    <h2>SymptoPortレポート</h2>
+    <h2>SymptoPortレポート ({{ location_name }})</h2>
     <p>{{ username }} ／ {{ from_date }} 〜 {{ to_date }}</p>
   </div>
+
+  {% if dates %}
+  <!-- グラフ推移（ベータ版） -->
+  <div class="chart-container no-print-break" id="chart-section" style="margin-bottom: 24px; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; box-shadow: var(--shadow);">
+    <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; font-weight: 700;">
+      📈 症状とWBGTの推移グラフ <span class="beta-badge">ベータ</span>
+    </h3>
+    <div style="position: relative; height: 350px; width: 100%;">
+      <canvas id="symptom-wbgt-chart"></canvas>
+    </div>
+    <div style="font-size: 0.78rem; color: var(--muted); margin-top: 8px; display: flex; flex-direction: column; gap: 4px; line-height: 1.45;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span>気象データ提供: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" style="color: var(--muted); text-decoration: underline;">Open-Meteo</a></span>
+        <span>※ 各症状は1日のうちの最大スコアを表示しています。</span>
+      </div>
+      <div style="font-size: 0.72rem; border-top: 1px dashed var(--border); padding-top: 4px; margin-top: 4px;">
+        ⚠️ <strong>免責事項:</strong> 本グラフに表示される暑さ指数(WBGT)は、外部気象情報を基に<a href="https://www.wbgt.env.go.jp/wbgt_detail.php" target="_blank" rel="noopener noreferrer" style="color: var(--muted); text-decoration: underline;">環境省の算出方法</a>に則り算出した<strong>簡易的な疑似値（参考値）</strong>であり、環境省公式発表の値とは異なります。また、本アプリは<strong>医療機器ではありません</strong>。
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   {% if not dates %}
   <div class="empty-msg">
@@ -373,6 +428,59 @@
           {% endif %}
         </tr>
         {% endfor %}
+        
+        {# 服薬データの追加 #}
+        {% if medication_timepoints %}
+        <tr style="background-color: #fafdfc; border-top: 1px solid var(--border);">
+          <td class="symptom-name" style="color: #27ae60; font-weight: bold;">
+            💊 服薬状況
+          </td>
+          <td class="score-cell" {% if ns.has_tp %} colspan="{{ tp_list | length }}" {% endif %} style="text-align: left; padding-left: 15px; color: var(--text);">
+            {% set med_ns = namespace(has_med=false) %}
+            {% for tp in medication_timepoints %}
+              {% set key = '__medication___' ~ tp %}
+              {% if rec.get(key) == 1 %}
+                {% set med_ns.has_med = true %}
+                <span style="display: inline-block; background-color: #eafaf1; color: #27ae60; border: 1px solid #c2ebd0; padding: 2px 8px; border-radius: 12px; font-size: 0.74rem; font-weight: bold; margin-right: 6px;">
+                  {% if tp == "morning" %}朝
+                  {% elif tp == "afternoon" %}昼
+                  {% elif tp == "evening" %}夜
+                  {% elif tp == "before_sleep" %}寝る前
+                  {% elif tp == "overall" %}全体
+                  {% endif %}: ✓
+                </span>
+              {% endif %}
+            {% endfor %}
+            {% if not med_ns.has_med %}
+              <span style="color: var(--muted); font-size: 0.8rem; font-style: italic;">記録なし</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endif %}
+        
+        {# WBGTデータ行の追加 #}
+        {% set w_rec = wbgt_records.get(date) %}
+        {% if w_rec and w_rec.wbgt is not none %}
+        <tr style="background-color: #fcfdfe; border-top: 1px solid var(--border);">
+          <td class="symptom-name" style="color: #e67e22; font-weight: bold;">
+            🌡️ 暑さ指数 ({{ location_name }})
+          </td>
+          <td class="score-cell" {% if ns.has_tp %} colspan="{{ tp_list | length }}" {% endif %} style="font-weight: bold; text-align: left; padding-left: 15px; color: var(--text);">
+            <span style="font-size: 1rem; color: #e67e22;">{{ w_rec.wbgt | round(1) }}</span> ℃
+            <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 8px; display: inline-block; vertical-align: middle;
+              {% if w_rec.is_forecast == 1 %}
+                background-color: #fff9db; border: 1px solid #f59f00; color: #f59f00;
+              {% else %}
+                background-color: #ebfbee; border: 1px solid #40c057; color: #40c057;
+              {% endif %}">
+              {{ '予報' if w_rec.is_forecast == 1 else '実測' }}
+            </span>
+            <span style="font-size: 0.74rem; color: var(--muted); font-weight: normal; margin-left: 12px;">
+              (気温: {{ w_rec.ta }}℃[10-14時最大] / 湿度: {{ w_rec.rh }}%[10-14時最大] / 日射: {{ w_rec.sr }}kW/m²[10-14時最大] / 風速: {{ w_rec.ws }}m/s[10-14時最小])
+            </span>
+          </td>
+        </tr>
+        {% endif %}
       </tbody>
     </table>
 
@@ -382,9 +490,264 @@
   </div>
 
   {% endfor %}
+
+  <!-- 印刷用免責フッター -->
+  <div style="margin-top: 30px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--muted); text-align: center; line-height: 1.45; break-inside: avoid; page-break-inside: avoid;">
+    ⚠️ SymptoPortは体調の自己管理・記録を目的としたセルフケアツールであり、<strong>医療機器ではありません</strong>。また、レポートに記載されている暑さ指数(WBGT)は、外部気象データを基に<a href="https://www.wbgt.env.go.jp/wbgt_detail.php" target="_blank" rel="noopener noreferrer" style="color: var(--muted); text-decoration: underline;">環境省の算出方法</a>に則って計算された<strong>簡易的な疑似値（参考値）</strong>であり、環境省公式発表の数値や実際の測定値とは異なります。
+  </div>
   {% endif %}
 
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // サーバーから渡されたJSONデータを取得
+    const dates = {{ dates_json | safe }};
+    const recordsByDate = {{ records_by_date_json | safe }};
+    const symptoms = {{ symptoms_json | safe }};
+    const wbgtRecords = {{ wbgt_records_json | safe }};
+
+    if (!dates || dates.length === 0) return;
+
+    // 各症状のデータセットを作成
+    const symptomDatasets = symptoms.map((s, index) => {
+      const data = dates.map(d => {
+        const dayRecs = recordsByDate[d] || {};
+        let scores = [];
+        if (s.use_timepoints) {
+          // morning, afternoon, evening
+          ["morning", "afternoon", "evening"].forEach(tp => {
+            const val = dayRecs[`${s.name}_${tp}`];
+            if (val !== undefined && val !== null && val !== -1) {
+              scores.push(val);
+            }
+          });
+        } else {
+          const val = dayRecs[`${s.name}_overall`];
+          if (val !== undefined && val !== null && val !== -1) {
+            scores.push(val);
+          }
+        }
+        return scores.length > 0 ? Math.max(...scores) : null;
+      });
+
+      // プレミアムな調和するカラーパレット
+      const colors = [
+        'rgba(231, 76, 60, 1.0)',  // 赤 (めまい等)
+        'rgba(155, 89, 182, 1.0)', // 紫
+        'rgba(46, 204, 113, 1.0)', // 緑
+        'rgba(52, 152, 219, 1.0)', // 青
+        'rgba(241, 196, 15, 1.0)', // 黄
+        'rgba(26, 188, 156, 1.0)'  // ターコイズ
+      ];
+      const color = colors[index % colors.length];
+
+      return {
+        label: s.label + (s.is_reverse ? ' (↑良)' : ''),
+        data: data,
+        borderColor: color,
+        backgroundColor: color.replace('1.0', '0.1'),
+        borderWidth: 2.5,
+        tension: 0.25,
+        spanGaps: true,
+        yAxisID: 'ySymptom',
+        borderDash: s.is_reverse ? [4, 4] : [], // 逆スコア症状（睡眠など）は点線表示
+        pointBackgroundColor: color,
+        pointRadius: 3
+      };
+    });
+
+    // WBGTデータセットの作成
+    const wbgtData = dates.map(d => {
+      const rec = wbgtRecords[d];
+      return rec && rec.wbgt !== null && rec.wbgt !== undefined ? rec.wbgt : null;
+    });
+
+    // 気温データセットの作成
+    const taData = dates.map(d => {
+      const rec = wbgtRecords[d];
+      return rec && rec.ta !== null && rec.ta !== undefined ? rec.ta : null;
+    });
+
+    const taDataset = {
+      label: '{{ location_name }} 気温 (右軸)',
+      data: taData,
+      borderColor: 'rgba(231, 76, 60, 0.45)', // 薄い赤/ピンク
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      tension: 0.25,
+      spanGaps: true,
+      yAxisID: 'yWbgt',
+      pointBackgroundColor: 'rgba(231, 76, 60, 0.5)',
+      pointRadius: 2,
+      borderDash: [3, 3] // 点線
+    };
+
+    const wbgtDataset = {
+      label: '{{ location_name }} WBGT (右軸)',
+      data: wbgtData,
+      borderColor: 'rgba(230, 126, 34, 1.0)', // 暖かさを連想させるオレンジ
+      backgroundColor: 'rgba(230, 126, 34, 0.08)',
+      borderWidth: 3,
+      tension: 0.25,
+      spanGaps: true,
+      yAxisID: 'yWbgt',
+      fill: true,
+      pointBackgroundColor: 'rgba(230, 126, 34, 1.0)',
+      pointRadius: 4
+    };
+
+    // Chart.js グラフの描画
+    const ctx = document.getElementById('symptom-wbgt-chart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: dates.map(d => {
+          const parts = d.split('-');
+          return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`; // MM/DD
+        }),
+        datasets: [...symptomDatasets, taDataset, wbgtDataset]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              font: { size: 11, weight: '600', family: 'inherit' }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (context.parsed.y !== null) {
+                  label += context.parsed.y;
+                  if (context.dataset.yAxisID === 'yWbgt') {
+                    label += ' ℃';
+                    const dateIndex = context.dataIndex;
+                    const dateKey = dates[dateIndex];
+                    const rec = wbgtRecords[dateKey];
+                    if (rec && rec.is_forecast !== undefined) {
+                      label += rec.is_forecast === 1 ? ' (予報値)' : ' (実測値)';
+                    }
+                  }
+                }
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 10, weight: '600' } }
+          },
+          ySymptom: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            min: 0,
+            max: 5,
+            title: {
+              display: true,
+              text: '症状スコア (0〜5)',
+              font: { weight: '700', size: 11 }
+            },
+            ticks: {
+              stepSize: 1,
+              font: { size: 10 }
+            },
+            grid: { color: '#f0f3f6' }
+          },
+          yWbgt: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            min: 10,
+            max: 40,
+            title: {
+              display: true,
+              text: '暑さ指数 WBGT (℃)',
+              font: { weight: '700', size: 11 }
+            },
+            ticks: {
+              stepSize: 5,
+              font: { size: 10 }
+            },
+            grid: { drawOnChartArea: false } // グリッド線が重複しないようにする
+          }
+        }
+      }
+    });
+
+    // 一括取得・キャッシュクリア一括取得ボタンのJS処理
+    const batchFetchBtn = document.getElementById("btn-batch-fetch");
+    const batchClearFetchBtn = document.getElementById("btn-batch-clear-fetch");
+    const batchStatus = document.getElementById("batch-status");
+    const printFrom = document.getElementById("print-from-date");
+    const printTo = document.getElementById("print-to-date");
+
+    if (batchFetchBtn && batchClearFetchBtn) {
+      async function runBatch(force) {
+        batchStatus.textContent = "⚡ 一括処理中...";
+        batchStatus.hidden = false;
+        batchStatus.style.color = "var(--primary)";
+        batchFetchBtn.disabled = true;
+        batchClearFetchBtn.disabled = true;
+
+        try {
+          const res = await fetch("/api/tokyo_weather/batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from_date: printFrom.value,
+              to_date: printTo.value,
+              force: force
+            })
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            batchStatus.textContent = `✓ ${data.count}日分を同期しました！`;
+            batchStatus.style.color = "#27ae60";
+            
+            // データを再描画するためリロード
+            setTimeout(() => {
+              window.location.reload();
+            }, 1200);
+          } else {
+            batchStatus.textContent = "✗ 同期に失敗しました";
+            batchStatus.style.color = "#c0392b";
+            batchFetchBtn.disabled = false;
+            batchClearFetchBtn.disabled = false;
+          }
+        } catch {
+          batchStatus.textContent = "✗ 通信エラーが発生しました";
+          batchStatus.style.color = "#c0392b";
+          batchFetchBtn.disabled = false;
+          batchClearFetchBtn.disabled = false;
+        }
+      }
+
+      batchFetchBtn.addEventListener("click", () => runBatch(0));
+      batchClearFetchBtn.addEventListener("click", () => {
+        if (confirm("選択された期間内の気象キャッシュをすべて破棄し、外部APIから最新の情報を一括再取得します。よろしいですか？")) {
+          runBatch(1);
+        }
+      });
+    }
+  });
+</script>
 
 </body>
 </html>

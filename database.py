@@ -20,7 +20,9 @@ def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL
+                password_hash TEXT NOT NULL,
+                location TEXT DEFAULT 'tokyo',
+                medication_timepoints TEXT DEFAULT ''
             );
         """)
 
@@ -88,6 +90,13 @@ def init_db():
                 );
             """)
 
+        # weather_cache.wbgt が NOT NULL の古いスキーマを修正（キャッシュのため消去OK）
+        _cache_info = conn.execute("PRAGMA table_info(weather_cache)").fetchall()
+        if _cache_info:
+            _wbgt_col = next((r for r in _cache_info if r["name"] == "wbgt"), None)
+            if _wbgt_col and _wbgt_col["notnull"] == 1:
+                conn.execute("DROP TABLE weather_cache")
+
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS records (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,7 +114,55 @@ def init_db():
                 body TEXT NOT NULL DEFAULT '',
                 UNIQUE(user_id, date)
             );
+            CREATE TABLE IF NOT EXISTS wbgt_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                date TEXT NOT NULL,
+                ta REAL,
+                rh REAL,
+                sr REAL,
+                ws REAL,
+                wbgt REAL,
+                is_forecast INTEGER DEFAULT 1,
+                UNIQUE(user_id, date)
+            );
+            CREATE TABLE IF NOT EXISTS weather_cache (
+                key TEXT PRIMARY KEY,
+                updated_at TEXT NOT NULL,
+                ta REAL NOT NULL,
+                rh REAL NOT NULL,
+                sr REAL NOT NULL,
+                ws REAL NOT NULL,
+                wbgt REAL,
+                is_forecast INTEGER DEFAULT 1
+            );
         """)
+
+        # wbgt_records テーブルのマイグレーション処理
+        table_info_wbgt = conn.execute("PRAGMA table_info(wbgt_records)").fetchall()
+        if table_info_wbgt:
+            has_is_forecast = any(row["name"] == "is_forecast" for row in table_info_wbgt)
+            if not has_is_forecast:
+                conn.execute("ALTER TABLE wbgt_records ADD COLUMN is_forecast INTEGER DEFAULT 1")
+
+        # weather_cache テーブルのマイグレーション処理
+        table_info_cache = conn.execute("PRAGMA table_info(weather_cache)").fetchall()
+        if table_info_cache:
+            has_is_forecast = any(row["name"] == "is_forecast" for row in table_info_cache)
+            if not has_is_forecast:
+                conn.execute("ALTER TABLE weather_cache ADD COLUMN is_forecast INTEGER DEFAULT 1")
+
+        # users テーブルのマイグレーション処理
+        table_info_users = conn.execute("PRAGMA table_info(users)").fetchall()
+        if table_info_users:
+            has_location = any(row["name"] == "location" for row in table_info_users)
+            if not has_location:
+                conn.execute("ALTER TABLE users ADD COLUMN location TEXT DEFAULT 'tokyo'")
+            
+            has_medication = any(row["name"] == "medication_timepoints" for row in table_info_users)
+            if not has_medication:
+                conn.execute("ALTER TABLE users ADD COLUMN medication_timepoints TEXT DEFAULT ''")
+
 
 
 @contextmanager
@@ -133,6 +190,22 @@ def get_user_by_username_by_id(user_id: int):
         return conn.execute(
             "SELECT * FROM users WHERE id = ?", (user_id,)
         ).fetchone()
+
+
+def update_user_location(user_id: int, location: str):
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET location = ? WHERE id = ?",
+            (location, user_id),
+        )
+
+
+def update_user_medication(user_id: int, medication_timepoints: str):
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET medication_timepoints = ? WHERE id = ?",
+            (medication_timepoints, user_id),
+        )
 
 
 def create_user(username: str, password_hash: str, selected_symptoms: list[str] = None):
@@ -294,3 +367,152 @@ def get_notes_for_range(user_id: int, start_date: str, end_date: str) -> dict:
             (user_id, start_date, end_date),
         ).fetchall()
     return {r["date"]: r["body"] for r in rows}
+
+
+# ---- WBGT & Weather Cache (ベータ版) ----
+
+def upsert_wbgt_record(user_id: int, date: str, ta, rh, sr, ws, wbgt, is_forecast):
+    with get_conn() as conn:
+        # すべて値が空（None）であれば削除する
+        if ta is None and rh is None and sr is None and ws is None and wbgt is None:
+            conn.execute(
+                "DELETE FROM wbgt_records WHERE user_id=? AND date=?",
+                (user_id, date),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO wbgt_records (user_id, date, ta, rh, sr, ws, wbgt, is_forecast)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, date)
+                DO UPDATE SET ta=excluded.ta, rh=excluded.rh, sr=excluded.sr, ws=excluded.ws, wbgt=excluded.wbgt, is_forecast=excluded.is_forecast
+                """,
+                (user_id, date, ta, rh, sr, ws, wbgt, is_forecast),
+            )
+
+
+def get_wbgt_record_for_date(user_id: int, date: str) -> dict:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT ta, rh, sr, ws, wbgt, is_forecast FROM wbgt_records WHERE user_id=? AND date=?",
+            (user_id, date),
+        ).fetchone()
+    return dict(row) if row else {}
+
+
+def get_wbgt_records_for_range(user_id: int, start_date: str, end_date: str) -> dict:
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT date, ta, rh, sr, ws, wbgt, is_forecast FROM wbgt_records
+               WHERE user_id=? AND date>=? AND date<=?
+               ORDER BY date""",
+            (user_id, start_date, end_date),
+        ).fetchall()
+    return {r["date"]: dict(r) for r in rows}
+
+
+def get_weather_cache(key: str) -> dict:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT updated_at, ta, rh, sr, ws, wbgt, is_forecast FROM weather_cache WHERE key=?",
+            (key,),
+        ).fetchone()
+    return dict(row) if row else {}
+
+
+def set_weather_cache(key: str, updated_at: str, ta: float, rh: float, sr: float, ws: float, wbgt: float, is_forecast: int):
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO weather_cache (key, updated_at, ta, rh, sr, ws, wbgt, is_forecast)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(key)
+            DO UPDATE SET updated_at=excluded.updated_at, ta=excluded.ta, rh=excluded.rh, sr=excluded.sr, ws=excluded.ws, wbgt=excluded.wbgt, is_forecast=excluded.is_forecast
+            """,
+            (key, updated_at, ta, rh, sr, ws, wbgt, is_forecast),
+        )
+
+
+def get_user_backup_data(user_id: int) -> dict:
+    with get_conn() as conn:
+        user_row = conn.execute("SELECT username, location, medication_timepoints FROM users WHERE id = ?", (user_id,)).fetchone()
+        user_info = dict(user_row) if user_row else {}
+        
+        symptoms_rows = conn.execute("SELECT name, label, use_timepoints, sort_order, active, is_reverse FROM symptoms WHERE user_id = ?", (user_id,)).fetchall()
+        symptoms = [dict(r) for r in symptoms_rows]
+        
+        records_rows = conn.execute("SELECT date, symptom, timepoint, score FROM records WHERE user_id = ?", (user_id,)).fetchall()
+        records = [dict(r) for r in records_rows]
+        
+        notes_rows = conn.execute("SELECT date, body FROM notes WHERE user_id = ?", (user_id,)).fetchall()
+        notes = [dict(r) for r in notes_rows]
+        
+        wbgt_rows = conn.execute("SELECT date, ta, rh, sr, ws, wbgt, is_forecast FROM wbgt_records WHERE user_id = ?", (user_id,)).fetchall()
+        wbgt_records = [dict(r) for r in wbgt_rows]
+        
+    return {
+        "version": "1.0",
+        "username": user_info.get("username", ""),
+        "location": user_info.get("location", "tokyo"),
+        "medication_timepoints": user_info.get("medication_timepoints", ""),
+        "symptoms": symptoms,
+        "records": records,
+        "notes": notes,
+        "wbgt_records": wbgt_records
+    }
+
+
+def restore_user_backup_data(user_id: int, backup_data: dict):
+    with get_conn() as conn:
+        # 1. 既存データの全削除
+        conn.execute("DELETE FROM records WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM notes WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM wbgt_records WHERE user_id = ?", (user_id,))
+        conn.execute("DELETE FROM symptoms WHERE user_id = ?", (user_id,))
+        
+        # 2. ユーザー設定の復元
+        location = backup_data.get("location", "tokyo")
+        medication_timepoints = backup_data.get("medication_timepoints", "")
+        conn.execute("UPDATE users SET location = ?, medication_timepoints = ? WHERE id = ?", (location, medication_timepoints, user_id))
+        
+        # 3. 症状定義のインサート
+        for s in backup_data.get("symptoms", []):
+            conn.execute(
+                """
+                INSERT INTO symptoms (user_id, name, label, use_timepoints, sort_order, active, is_reverse)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, s["name"], s["label"], s["use_timepoints"], s["sort_order"], s["active"], s["is_reverse"])
+            )
+            
+        # 4. 記録のインサート
+        for r in backup_data.get("records", []):
+            conn.execute(
+                """
+                INSERT INTO records (user_id, date, symptom, timepoint, score)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (user_id, r["date"], r["symptom"], r["timepoint"], r["score"])
+            )
+            
+        # 5. 備考メモのインサート
+        for n in backup_data.get("notes", []):
+            conn.execute(
+                """
+                INSERT INTO notes (user_id, date, body)
+                VALUES (?, ?, ?)
+                """,
+                (user_id, n["date"], n["body"])
+            )
+            
+        # 6. WBGT記録のインサート
+        for w in backup_data.get("wbgt_records", []):
+            conn.execute(
+                """
+                INSERT INTO wbgt_records (user_id, date, ta, rh, sr, ws, wbgt, is_forecast)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, w["date"], w.get("ta"), w.get("rh"), w.get("sr"), w.get("ws"), w.get("wbgt"), w.get("is_forecast", 1))
+            )
+
+
