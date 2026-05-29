@@ -310,6 +310,11 @@
 
   {% set dow_ja = ["月","火","水","木","金","土","日"] %}
 
+  {# タイムポイントを使う症状が1つでもあるか判定 #}
+  {% set ns = namespace(has_tp=false) %}
+  {% for s in symptoms %}{% if s.use_timepoints %}{% set ns.has_tp = true %}{% endif %}{% endfor %}
+  {% set tp_list = timepoints | reject('equalto', 'overall') | list %}
+
   {% for date in dates %}
   {% set rec = records_by_date.get(date, {}) %}
   {% set note_text = notes_by_date.get(date, '') %}
@@ -324,15 +329,13 @@
       <thead>
         <tr>
           <th class="symptom-col">症状</th>
-          {% for s in symptoms %}
-            {% if s.use_timepoints %}
-              {% for tp in timepoints if tp != 'overall' %}
-              <th>{{ timepoint_labels[tp] }}</th>
-              {% endfor %}
-            {% else %}
-              <th>全体</th>
-            {% endif %}
-          {% endfor %}
+          {% if ns.has_tp %}
+            {% for tp in tp_list %}
+            <th>{{ timepoint_labels[tp] }}</th>
+            {% endfor %}
+          {% else %}
+            <th>スコア</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -342,7 +345,7 @@
             {{ s.label }}{% if s.is_reverse %} <span style="color:var(--primary);font-size:0.72rem;">↑良</span>{% endif %}
           </td>
           {% if s.use_timepoints %}
-            {% for tp in timepoints if tp != 'overall' %}
+            {% for tp in tp_list %}
             {% set key = s.name ~ '_' ~ tp %}
             {% set score = rec.get(key) %}
             <td class="score-cell">
@@ -358,7 +361,7 @@
           {% else %}
             {% set key = s.name ~ '_overall' %}
             {% set score = rec.get(key) %}
-            <td class="score-cell">
+            <td class="score-cell"{% if ns.has_tp %} colspan="{{ tp_list | length }}"{% endif %}>
               {% if score is none %}
                 <span class="score-empty">·</span>
               {% elif score == -1 %}
