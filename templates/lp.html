@@ -256,7 +256,28 @@
       border-radius: var(--radius);
       padding: 28px 24px;
       box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.25s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 36px rgba(0,0,0,0.12);
+    }
+
+    .feature-card:hover::before { transform: scaleX(1); }
 
     .feature-card .feat-icon {
       width: 48px;
@@ -519,7 +540,7 @@
 <section class="hero">
   <div class="hero-inner">
     <h1>「なんとなく不調」を<br><span>見える化</span>して、<br>医師に伝える。</h1>
-    <p>めまい・倦怠感・痛みなど、波のある症状を毎日スコアで記録。通院時に「客観的なデータ」として活用できます。</p>
+    <p>めまい・倦怠感・痛みなど、波のある症状を毎日スコアで記録。天気や服薬とあわせて振り返り、通院時に「客観的なデータ」として活用できます。</p>
     <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:16px;">
       <a href="/register" class="hero-cta">無料で始める</a>
       <button data-pwa-install onclick="triggerInstall()" class="hero-cta" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1.5px solid rgba(255,255,255,0.6);">📲 ホーム画面に追加</button>
@@ -681,9 +702,27 @@
       </div>
 
       <div class="feature-card">
+        <div class="feat-icon">🌤️</div>
+        <h3>天気・暑さ指数(WBGT)と並べて記録</h3>
+        <p>お住まいの地域の気温・WBGT（暑さ指数）を自動取得し、症状グラフと重ねて表示。「天気が悪いと不調」が思い込みか本当か、データで確かめられます。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-icon">💊</div>
+        <h3>服薬チェック</h3>
+        <p>朝・昼・夜・寝る前など、時間帯ごとに服薬の有無を記録。飲み忘れの確認や、薬の変更前後での体調比較に役立ちます。</p>
+      </div>
+
+      <div class="feature-card">
         <div class="feat-icon">💬</div>
         <h3>日記メモで状況を補足</h3>
         <p>数値だけでは伝わらない「今日は外出が多かった」「生理中」など、その日の背景をメモとして残せます。</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-icon">💾</div>
+        <h3>バックアップ・復元</h3>
+        <p>すべての記録を1つのファイルに書き出し、いつでも復元可能。機種変更やデータ移行も安心。あなたの記録は、あなたの手元に。</p>
       </div>
 
       <div class="feature-card">
@@ -709,7 +748,7 @@
     <h2>毎日30秒。習慣になる記録画面</h2>
     <p class="lead">スコアボタンをタップするだけ。難しい操作は一切ありません。</p>
     <div class="score-demo">
-      <h4>📅 2026年5月28日（木）の記録</h4>
+      <h4>📅 2026年5月29日（金）の記録</h4>
       <div class="score-row">
         <span class="score-label">めまい</span>
         <div class="score-buttons">
@@ -813,6 +852,24 @@
           <tr>
             <td>逆スコア設定<br>（良いことを高得点で記録）</td>
             <td class="our-col check">✓</td>
+            <td class="cross">✗</td>
+            <td class="cross">✗</td>
+          </tr>
+          <tr>
+            <td>天気・暑さ指数(WBGT)<br>と症状の連携</td>
+            <td class="our-col check">✓ 自動取得</td>
+            <td class="cross">✗</td>
+            <td class="half">△ 一部対応</td>
+          </tr>
+          <tr>
+            <td>服薬チェック</td>
+            <td class="our-col check">✓ 時間帯別</td>
+            <td class="half">△ 別アプリ</td>
+            <td class="half">△</td>
+          </tr>
+          <tr>
+            <td>データのバックアップ・復元</td>
+            <td class="our-col check">✓ 自分で保存</td>
             <td class="cross">✗</td>
             <td class="cross">✗</td>
           </tr>
