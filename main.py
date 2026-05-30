@@ -533,7 +533,11 @@ async def save_records(
         score = entry.get("score")
 
         is_medication = (symptom == "__medication__")
-        if (not is_medication and symptom not in valid_symptoms) or timepoint not in TIMEPOINTS:
+        
+        # 服薬記録の場合は 'before_sleep' を含む時間帯を許容する
+        allowed_tps = {"morning", "afternoon", "evening", "before_sleep", "overall"} if is_medication else set(TIMEPOINTS)
+        
+        if (not is_medication and symptom not in valid_symptoms) or timepoint not in allowed_tps:
             return JSONResponse({"error": "invalid data"}, status_code=400)
         if score is not None and score not in range(-1, 6):
             return JSONResponse({"error": "invalid score"}, status_code=400)
