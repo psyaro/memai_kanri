@@ -524,7 +524,7 @@ async def save_records(
     # note の長さを最大2000文字に制限（ストレージ枯渇対策）
     note = note[:2000]
 
-    valid_symptoms = {s["name"] for s in database.get_active_symptoms(user_id)}
+    valid_symptoms = {s["name"] for s in database.get_all_symptoms(user_id)}
 
     for entry in entries:
         symptom = entry.get("symptom")
@@ -880,6 +880,7 @@ async def get_tokyo_weather_batch(
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(
     request: Request,
+    error: Optional[str] = None,
     user_id: int = Depends(auth.get_current_user_id),
 ):
     symptoms = database.get_all_symptoms(user_id)
@@ -895,7 +896,8 @@ async def settings_page(
             "symptoms": symptoms,
             "cities": CITIES,
             "current_location": current_location,
-            "medication_list": medication_list
+            "medication_list": medication_list,
+            "error": error
         },
     )
 

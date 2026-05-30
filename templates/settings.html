@@ -17,6 +17,12 @@
   </header>
 
   <main>
+    {% if error == 'duplicate' %}
+    <div class="alert-box error-alert" style="background-color: #fdecea; color: #c0392b; border: 1px solid #f5c6cb; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-weight: bold; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(192, 57, 43, 0.05);">
+      ⚠️ このID（英字名）はすでに登録されているか、システム予約のデフォルト項目として存在します。別のIDを使用するか、既存の項目を有効化してください。
+    </div>
+    {% endif %}
+
     <section class="settings-section">
       <h2>記録項目</h2>
       <p class="settings-hint">ドラッグで並び替え、チェックを外すと非表示になります。</p>
