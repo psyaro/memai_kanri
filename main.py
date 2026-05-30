@@ -526,6 +526,7 @@ async def save_records(
 
     valid_symptoms = {s["name"] for s in database.get_all_symptoms(user_id)}
 
+    # 1. 症状スコアのバリデーション (保存開始前に実行)
     for entry in entries:
         symptom = entry.get("symptom")
         timepoint = entry.get("timepoint")
@@ -537,11 +538,8 @@ async def save_records(
         if score is not None and score not in range(-1, 6):
             return JSONResponse({"error": "invalid score"}, status_code=400)
 
-        database.upsert_record(user_id, date, symptom, timepoint, score)
-
-    database.upsert_note(user_id, date, note)
-
-    # WBGTデータの保存
+    # 2. WBGTデータのバリデーションと型変換 (保存開始前に実行)
+    parsed_wbgt = None
     if wbgt_data:
         try:
             ta = float(wbgt_data.get("ta")) if wbgt_data.get("ta") is not None and wbgt_data.get("ta") != "" else None
@@ -550,11 +548,23 @@ async def save_records(
             ws = float(wbgt_data.get("ws")) if wbgt_data.get("ws") is not None and wbgt_data.get("ws") != "" else None
             wbgt = float(wbgt_data.get("wbgt")) if wbgt_data.get("wbgt") is not None and wbgt_data.get("wbgt") != "" else None
             is_forecast = int(wbgt_data.get("is_forecast", 1))
-            database.upsert_wbgt_record(user_id, date, ta, rh, sr, ws, wbgt, is_forecast)
+            parsed_wbgt = {
+                "ta": ta,
+                "rh": rh,
+                "sr": sr,
+                "ws": ws,
+                "wbgt": wbgt,
+                "is_forecast": is_forecast
+            }
         except ValueError:
             return JSONResponse({"error": "invalid wbgt values"}, status_code=400)
-    else:
-        database.upsert_wbgt_record(user_id, date, None, None, None, None, None, 1)
+
+    # 3. アトミックな一括トランザクション保存の実行
+    try:
+        database.save_user_day_data(user_id, date, entries, note, parsed_wbgt)
+    except Exception as e:
+        print(f"[ERROR] Atomic save transaction failed: {e}")
+        return JSONResponse({"error": "database save error"}, status_code=500)
 
     return JSONResponse({"ok": True})
 

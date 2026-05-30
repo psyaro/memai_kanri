@@ -516,3 +516,67 @@ def restore_user_backup_data(user_id: int, backup_data: dict):
             )
 
 
+def save_user_day_data(user_id: int, date: str, entries: list, note: str, wbgt_data: dict = None):
+    with get_conn() as conn:
+        # 1. 症状スコアの保存
+        for entry in entries:
+            symptom = entry.get("symptom")
+            timepoint = entry.get("timepoint")
+            score = entry.get("score")
+            
+            if score is None:
+                conn.execute(
+                    "DELETE FROM records WHERE user_id=? AND date=? AND symptom=? AND timepoint=?",
+                    (user_id, date, symptom, timepoint),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO records (user_id, date, symptom, timepoint, score)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, date, symptom, timepoint)
+                    DO UPDATE SET score = excluded.score
+                    """,
+                    (user_id, date, symptom, timepoint, score),
+                )
+        
+        # 2. 備考の保存
+        if note.strip():
+            conn.execute(
+                """
+                INSERT INTO notes (user_id, date, body) VALUES (?,?,?)
+                ON CONFLICT(user_id, date) DO UPDATE SET body=excluded.body
+                """,
+                (user_id, date, note),
+            )
+        else:
+            conn.execute(
+                "DELETE FROM notes WHERE user_id=? AND date=?",
+                (user_id, date),
+            )
+            
+        # 3. WBGTデータの保存
+        if wbgt_data:
+            ta = wbgt_data.get("ta")
+            rh = wbgt_data.get("rh")
+            sr = wbgt_data.get("sr")
+            ws = wbgt_data.get("ws")
+            wbgt = wbgt_data.get("wbgt")
+            is_forecast = wbgt_data.get("is_forecast", 1)
+            
+            conn.execute(
+                """
+                INSERT INTO wbgt_records (user_id, date, ta, rh, sr, ws, wbgt, is_forecast)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, date)
+                DO UPDATE SET ta=excluded.ta, rh=excluded.rh, sr=excluded.sr, ws=excluded.ws, wbgt=excluded.wbgt, is_forecast=excluded.is_forecast
+                """,
+                (user_id, date, ta, rh, sr, ws, wbgt, is_forecast),
+            )
+        else:
+            conn.execute(
+                "DELETE FROM wbgt_records WHERE user_id=? AND date=?",
+                (user_id, date),
+            )
+
+

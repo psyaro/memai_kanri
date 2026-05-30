@@ -6,7 +6,7 @@
      - API (/api/*): Network Only（オフライン時はエラー通知）
    ============================================================ */
 
-const CACHE_VERSION = 'v0.6.2';
+const CACHE_VERSION = 'v0.6.3';
 const STATIC_CACHE  = `SymptoPort-static-${CACHE_VERSION}`;
 const PAGE_CACHE    = `SymptoPort-pages-${CACHE_VERSION}`;
 
